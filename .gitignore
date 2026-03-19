@@ -1,0 +1,14 @@
+node_modules/
+.env
+
+# Build outputs
+dist-electron/
+dist/
+*.apk
+*.zip
+
+# Android / Capacitor
+android/app/build/
+android/.gradle/
+android/capacitor-cordova-android-plugins/
+.gradle/

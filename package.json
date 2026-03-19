@@ -1,0 +1,57 @@
+{
+  "name": "offgridlink",
+  "version": "2.0.0",
+  "description": "OffGridLink – Offline-first P2P Quiz Distribution Platform for classrooms and low-connectivity environments",
+  "main": "main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "teacher": "electron .",
+    "build-teacher": "electron-builder --win portable",
+    "student": "npx http-server public -c-1 -p 8081 -o /index.html",
+    "couch-setup": "node config_couch.js",
+    "electron": "electron ."
+  },
+  "build": {
+    "appId": "io.offgrid.teacher",
+    "productName": "OffGridLink Teacher",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "public/**/*"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "public/icons/icon.png"
+    }
+  },
+  "keywords": [
+    "offline",
+    "pwa",
+    "pouchdb",
+    "couchdb",
+    "webtorrent",
+    "peerjs",
+    "quiz",
+    "education",
+    "p2p"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@capacitor/filesystem": "^6.0.4",
+    "@capacitor/share": "^6.0.4",
+    "http-server": "^14.1.1",
+    "peer": "^1.0.2"
+  },
+  "devDependencies": {
+    "electron": "^40.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

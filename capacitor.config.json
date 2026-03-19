@@ -1,0 +1,20 @@
+{
+  "appId": "io.offgrid.student",
+  "appName": "OffGridLink Student",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "http",
+    "cleartext": true,
+    "allowNavigation": [
+      "192.168.*.*",
+      "10.*.*.*",
+      "172.*.*.*",
+      "localhost"
+    ]
+  },
+  "plugins": {
+    "CapacitorCookies": {
+      "enabled": true
+    }
+  }
+}
