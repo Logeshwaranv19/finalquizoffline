@@ -139,6 +139,18 @@
                     </div>
                 </div>
                 <button class="btn btn-ghost btn-full" id="join-torrent-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Quiz from Link</button>
+
+                <!-- Download Progress -->
+                <div id="download-progress-wrap" style="display:none; margin-top:14px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                        <span id="download-progress-status" style="font-size:12px; color:var(--text-secondary); font-weight:500;"></span>
+                        <span id="download-progress-label" style="font-size:12px; color:var(--accent); font-weight:600; font-family:monospace;"></span>
+                    </div>
+                    <div class="progress-bar-track">
+                        <div class="progress-bar-fill" id="download-progress-fill" style="width:0%;"></div>
+                    </div>
+                    <div id="download-progress-peers" style="font-size:11px; color:var(--text-muted); margin-top:5px; text-align:center;"></div>
+                </div>
             </div>
 
         </div>

@@ -472,6 +472,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ─── Download Progress UI ────────────────────────────────
+    const _dpWrap   = document.getElementById('download-progress-wrap');
+    const _dpFill   = document.getElementById('download-progress-fill');
+    const _dpStatus = document.getElementById('download-progress-status');
+    const _dpLabel  = document.getElementById('download-progress-label');
+    const _dpPeers  = document.getElementById('download-progress-peers');
+
+    function showDownloadProgress(statusText, indeterminate = false) {
+        if (!_dpWrap) return;
+        _dpWrap.style.display = 'block';
+        _dpStatus.textContent = statusText || '';
+        _dpLabel.textContent  = indeterminate ? '' : '0%';
+        _dpPeers.textContent  = '';
+        _dpFill.style.width   = indeterminate ? '40%' : '0%';
+        _dpFill.classList.toggle('indeterminate', indeterminate);
+    }
+
+    function updateDownloadProgress(percent, statusText, peersText) {
+        if (!_dpWrap) return;
+        _dpFill.classList.remove('indeterminate');
+        _dpFill.style.width  = Math.min(100, Math.max(0, percent)).toFixed(1) + '%';
+        _dpLabel.textContent = Math.min(100, Math.round(percent)) + '%';
+        if (statusText !== undefined) _dpStatus.textContent = statusText;
+        if (peersText  !== undefined) _dpPeers.textContent  = peersText;
+    }
+
+    function hideDownloadProgress() {
+        if (!_dpWrap) return;
+        updateDownloadProgress(100, 'Done');
+        setTimeout(() => {
+            _dpWrap.style.display = 'none';
+            _dpFill.style.width   = '0%';
+            _dpFill.classList.remove('indeterminate');
+            _dpStatus.textContent = '';
+            _dpLabel.textContent  = '';
+            _dpPeers.textContent  = '';
+        }, 1200);
+    }
+
     // ─── WebTorrent download ─────────────────────────────────
     const joinTorrentBtn = document.getElementById('join-torrent-btn');
     if (joinTorrentBtn) {
@@ -518,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startTorrentDownloadWithSwarm(magnetURI) {
-        showToast(withModeBadge('WebTorrent', 'Connecting to torrent swarm...'), 'info');
+        showDownloadProgress('Connecting to swarm…', true);
 
         const startedAt = Date.now();
         const magnetParams = parseMagnetParams(magnetURI);
@@ -532,6 +571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (probe && probe.ok === false) {
             console.warn('[Torrent] Tracker unreachable during probe:', probe.url, probe.error || 'unknown');
             showToast(withModeBadge('WebTorrent', 'Tracker unreachable (' + probe.url + '). Check Teacher IP/Firewall for port 8000.'), 'error');
+            hideDownloadProgress();
             return;
         }
 
@@ -541,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
         client.on('error', err => {
             console.error('[Torrent] Client error:', err);
             showToast(withModeBadge('WebTorrent', 'Torrent error: ' + err.message), 'error');
+            hideDownloadProgress();
         });
 
         client.on('warning', err => {
@@ -557,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         torrent.on('metadata', () => {
             console.log('[Torrent] Metadata received. Name:', torrent.name, 'Files:', torrent.files ? torrent.files.length : 0);
+            updateDownloadProgress(0, 'Metadata received, starting…', '');
         });
 
         torrent.on('ready', () => {
@@ -575,20 +617,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('[Torrent] Tracker error:', err && err.message ? err.message : err);
         });
 
-        torrent.on('peer', (peer) => {
-            console.log('[Torrent] Peer discovered:', peer);
-        });
-
         torrent.on('wire', () => {
             console.log('[Torrent] Wire connected. Peers now:', torrent.numPeers);
+            updateDownloadProgress(
+                torrent.progress * 100,
+                'Downloading…',
+                torrent.numPeers + ' peer' + (torrent.numPeers !== 1 ? 's' : '') + ' connected'
+            );
         });
 
-        torrent.on('download', (bytes) => {
-            console.log('[Torrent] Download chunk:', bytes, 'Downloaded:', torrent.downloaded, 'Progress:', (torrent.progress * 100).toFixed(2) + '%');
-        });
-
-        torrent.on('done', () => {
-            console.log('[Torrent] Download completed in', Date.now() - startedAt, 'ms');
+        torrent.on('download', () => {
+            const pct = torrent.progress * 100;
+            const speed = torrent.downloadSpeed;
+            const speedStr = speed > 0 ? ' · ' + formatBytes(speed) + '/s' : '';
+            updateDownloadProgress(
+                pct,
+                'Downloading…',
+                torrent.numPeers + ' peer' + (torrent.numPeers !== 1 ? 's' : '') + speedStr
+            );
         });
 
         // Timeout: if no peers are found, keep this path strictly WebTorrent.
@@ -596,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!isCompleted && torrent.numPeers === 0) {
                 console.warn('[Torrent] Timeout waiting for peers. Announce:', torrent.announce);
                 showToast(withModeBadge('WebTorrent', 'No peers found. Re-seed a fresh magnet and verify tracker port 8000 is reachable.'), 'error');
+                hideDownloadProgress();
             }
         }, connectTimeoutMs);
 
@@ -603,33 +650,47 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(timeout);
             console.error('[Torrent] Torrent error:', err);
             showToast(withModeBadge('WebTorrent', 'Torrent error: ' + (err && err.message ? err.message : 'Unknown error')), 'error');
+            hideDownloadProgress();
         });
 
         torrent.on('noPeers', announceType => {
             console.warn('[Torrent] No peers found via', announceType);
-            showToast(withModeBadge('WebTorrent', 'No peers found via ' + announceType + '. Waiting for peers...'), 'info');
         });
 
         torrent.on('done', () => {
             isCompleted = true;
             clearTimeout(timeout);
+            console.log('[Torrent] Download completed in', Date.now() - startedAt, 'ms');
+            updateDownloadProgress(100, 'Done!', '');
             torrent.files.forEach(file => {
                 file.getBuffer((err, buffer) => {
-                    if (err) { showToast('Torrent download error: ' + err.message, 'error'); return; }
+                    if (err) {
+                        showToast('Torrent download error: ' + err.message, 'error');
+                        hideDownloadProgress();
+                        return;
+                    }
                     try {
                         const text = new TextDecoder().decode(buffer);
                         const pkg = JSON.parse(text);
                         if (pkg.quiz) {
                             storeStudentQuizLocal(pkg.quiz);
-                            showToast(withModeBadge('WebTorrent', 'Quiz downloaded from torrent!'), 'success');
+                            showToast(withModeBadge('WebTorrent', 'Quiz downloaded!'), 'success');
+                            hideDownloadProgress();
                         }
                     } catch (e) {
                         console.error('[Torrent] Parse error:', e);
                         showToast('Invalid quiz file', 'error');
+                        hideDownloadProgress();
                     }
                 });
             });
         });
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
     function parseMagnetParams(magnetURI) {
@@ -695,18 +756,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function downloadQuizFromDirectLan(url) {
-        showToast(withModeBadge('Local Wi-Fi', 'Using direct LAN transfer...'), 'info');
+        showDownloadProgress('Fetching from teacher…', true);
         try {
             const payload = await fetchJsonWithTimeout(url, 12000);
             const pkg = payload && payload.package ? payload.package : payload;
             if (!pkg || !pkg.quiz) {
                 throw new Error('Invalid quiz package');
             }
+            updateDownloadProgress(100, 'Done!', '');
             await storeStudentQuizLocal(pkg.quiz);
-            showToast(withModeBadge('Local Wi-Fi', 'Quiz downloaded via direct LAN transfer!'), 'success');
+            showToast(withModeBadge('Local Wi-Fi', 'Quiz downloaded!'), 'success');
+            hideDownloadProgress();
         } catch (err) {
             console.error('[LAN] Direct transfer error:', err);
             showToast(withModeBadge('Local Wi-Fi', 'Direct LAN transfer failed: ' + (err && err.message ? err.message : err)), 'error');
+            hideDownloadProgress();
         }
     }
 
