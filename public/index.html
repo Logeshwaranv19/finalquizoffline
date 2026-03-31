@@ -3,307 +3,41 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0D0D0F">
     <title>OffGridLink – Student</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
     <meta http-equiv="Content-Security-Policy"
         content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval'; connect-src * 'unsafe-inline';">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&family=Sora:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="src/student.css">
+    <script src="./tailwindcss.js"></script>
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            accent: '#F59E0B',
+                            bg: { DEFAULT: '#0D0D0F', surface: '#141416', surface2: '#1C1C20', surface3: '#242428' },
+                            border: { DEFAULT: '#2A2A30', focus: '#F59E0B' },
+                            tx: { primary: '#F4F4F5', secondary: '#A1A1AA', muted: '#52525B' },
+                        },
+                        fontFamily: {
+                            display: ['Sora', 'sans-serif'],
+                            sans: ['Plus Jakarta Sans', 'sans-serif'],
+                            mono: ['JetBrains Mono', 'monospace'],
+                        },
+                    }
+                }
+            }
+        }
+    </script>
     <script src="./pouchdb.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
-    <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        :root {
-            --bg: #060502; 
-            --surface: rgba(18, 15, 6, 0.7); 
-            --surface-solid: #120f06;
-            --surface2: rgba(25, 20, 10, 0.5); 
-            --border: rgba(245, 158, 11, 0.1);
-            --accent: #f59e0b; 
-            --accent-rgb: 245, 158, 11;
-            --accent-gradient: linear-gradient(135deg, #f59e0b, #fbbf24);
-            --green: #f59e0b; 
-            --yellow: #f59e0b;
-            --red: #f43f5e; 
-            --text: #fffbeb; 
-            --text2: #94a3b8; 
-            --text3: #64748b;
-            --glass-blur: blur(12px);
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --radius-xl: 20px;
-            --radius-lg: 16px;
-            --radius-md: 12px;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text);
-            min-height: 100vh; display: flex; flex-direction: column;
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(245, 158, 11, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(251, 191, 36, 0.05) 0%, transparent 50%);
-            background-attachment: fixed;
-        }
-
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-        /* ─── Header ─── */
-        header {
-            background: var(--surface); 
-            backdrop-filter: var(--glass-blur);
-            border-bottom: 1px solid var(--border);
-            padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 100;
-        }
-        .logo { display: flex; align-items: center; gap: 12px; }
-        .logo-icon { 
-            font-size: 24px; 
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.3));
-        }
-        .logo-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
-        .header-badges { display: flex; gap: 10px; align-items: center; }
-        .badge {
-            display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2);
-            padding: 6px 12px; border-radius: var(--radius-md); 
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .badge:hover { border-color: var(--accent); color: var(--text); }
-        .badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); box-shadow: 0 0 8px currentColor; }
-
-        /* ─── Reconnecting bar ─── */
-        #reconnect-banner {
-            background: rgba(245,158,11,.1); border-bottom: 1px solid rgba(245,158,11,.3);
-            padding: 8px 16px; font-size: 12px; color: var(--yellow);
-            display: none; align-items: center; gap: 8px; text-align: center; justify-content: center;
-        }
-        #reconnect-banner.visible { display: flex; }
-
-        /* ─── Bottom Nav ─── */
-        .bottom-nav {
-            position: fixed; bottom: 20px; left: 20px; right: 20px;
-            background: var(--surface); 
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xl);
-            display: flex; z-index: 100;
-            box-shadow: var(--shadow-lg);
-            padding: 8px;
-        }
-        .nav-btn {
-            flex: 1; padding: 10px 4px; background: none; border: none; color: var(--text3);
-            font-size: 12px; font-weight: 600; cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            transition: all 0.3s ease; font-family: 'Outfit', sans-serif;
-            border-radius: var(--radius-md);
-        }
-        .nav-btn .nav-icon { font-size: 22px; margin-bottom: 2px; transition: transform 0.3s ease; }
-        .nav-btn.active { 
-            color: var(--accent); 
-            background: rgba(16, 185, 129, 0.1);
-        }
-        .nav-btn.active .nav-icon { transform: translateY(-2px); }
-
-        /* ─── Main ─── */
-        main { flex: 1; padding: 16px; padding-bottom: 80px; overflow-y: auto; }
-        .screen { display: none; }
-        .screen.active { display: block; }
-
-        /* ─── Connect Screen ─── */
-        .connect-hero { text-align: center; padding: 40px 0 32px; }
-        .connect-hero .hero-icon { 
-            font-size: 64px; margin-bottom: 16px; 
-            filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.4));
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        .connect-hero h2 { font-size: 28px; font-weight: 800; margin-bottom: 10px; letter-spacing: -0.01em; }
-        .connect-hero p { font-size: 15px; color: var(--text2); max-width: 280px; margin: 0 auto; line-height: 1.5; }
-        .connect-card {
-            background: var(--surface); 
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xl); padding: 24px; margin-bottom: 16px;
-            box-shadow: var(--shadow-md);
-        }
-        .form-group { margin-bottom: 20px; }
-        .form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
-
-        input[type="text"], textarea {
-            width: 100%; background: var(--surface2); border: 2px solid var(--border);
-            color: var(--text); padding: 14px 16px; border-radius: var(--radius-md);
-            font-size: 15px; font-family: 'Outfit', sans-serif; outline: none; transition: all 0.3s ease;
-        }
-        input:focus, textarea:focus { border-color: var(--accent); background: rgba(16, 185, 129, 0.05); transform: translateY(-1px); }
-        input::placeholder { color: var(--text3); }
-
-        .btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 16px; border-radius: var(--radius-md); font-size: 16px; font-weight: 700;
-            border: none; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family: 'Outfit', sans-serif;
-        }
-        .btn-primary { 
-            background: var(--accent-gradient); 
-            color: #000; font-weight: 700;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-        }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5); opacity: 0.95; }
-        .btn-primary:active { transform: scale(0.98); }
-        .btn-ghost { 
-            background: var(--surface2); 
-            color: var(--text); 
-            border: 1px solid var(--border); 
-        }
-        .btn-ghost:hover { background: var(--border); border-color: var(--text3); }
-        .btn-success { background: var(--green); color: #fff; }
-        .btn-danger { background: var(--red); color: #fff; }
-        .btn-sm { padding: 8px 16px; font-size: 13px; width: auto; }
-
-        /* ─── Quiz Cards ─── */
-        .quiz-card {
-            background: var(--surface); 
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;
-            box-shadow: var(--shadow-sm);
-        }
-        .quiz-card:hover { 
-            border-color: var(--accent); 
-            transform: translateY(-4px); 
-            box-shadow: var(--shadow-lg);
-            background: rgba(15, 23, 42, 0.8);
-        }
-        .quiz-card:active { transform: scale(0.98); }
-        .quiz-card-icon {
-            width: 48px; height: 48px;
-            background: var(--accent-gradient);
-            border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;
-            font-size: 20px; margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-        }
-        .quiz-card-title { font-weight: 700; font-size: 17px; margin-bottom: 6px; letter-spacing: -0.01em; }
-        .quiz-card-meta { font-size: 13px; color: var(--text2); display: flex; gap: 8px; flex-wrap: wrap; }
-        .quiz-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
-        .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
-        .pill-new { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.2); }
-        .pill-attempted { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.2); }
-        .pill-submitted { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
-
-        /* ─── Quiz Attempt Screen ─── */
-        .quiz-attempt-header { 
-            background: var(--surface); 
-            backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border); 
-            border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; 
-            box-shadow: var(--shadow-md);
-        }
-        .quiz-attempt-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.02em; }
-        .quiz-attempt-meta { font-size: 14px; color: var(--text2); margin-bottom: 16px; }
-        .progress-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; margin-top: 10px; }
-        .progress-fill { height: 100%; background: var(--accent-gradient); border-radius: 10px; transition: width .4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
-        .timer-badge { 
-            display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; 
-            background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); 
-            border-radius: var(--radius-md); font-size: 14px; font-weight: 700; color: #fbbf24; 
-        }
-        .timer-badge.urgent { color: var(--red); border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        .question-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-sm); }
-        .question-num { font-size: 12px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
-        .question-text { font-size: 17px; font-weight: 600; line-height: 1.6; margin-bottom: 20px; color: #fff; }
-        .option-btn {
-            display: flex; align-items: center; gap: 12px; width: 100%;
-            padding: 16px; background: rgba(30, 41, 59, 0.3); border: 2px solid var(--border);
-            border-radius: var(--radius-md); margin-bottom: 10px; cursor: pointer; font-size: 15px; color: var(--text2);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); text-align: left; font-family: 'Outfit', sans-serif;
-        }
-        .option-btn:hover { border-color: rgba(var(--accent-rgb), 0.4); background: rgba(var(--accent-rgb), 0.05); color: var(--text); }
-        .option-btn.selected { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.1); color: #fff; font-weight: 700; transform: scale(1.01); }
-        .option-btn.correct { border-color: var(--green); background: rgba(16, 185, 129, 0.1); color: #34d399; }
-        .option-btn.wrong { border-color: var(--red); background: rgba(244, 63, 94, 0.1); color: #fb7185; }
-        select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23f59e0b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 40px; }
-        select option { background: #120f06; color: var(--text); padding: 10px; }
-        .option-letter { width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; color: var(--text3); }
-        .option-btn.selected .option-letter { background: var(--accent-gradient); color: #fff; }
-        .short-answer-input { width: 100%; min-height: 100px; background: var(--surface2); border: 2px solid var(--border); color: var(--text); padding: 16px; border-radius: var(--radius-md); font-size: 15px; font-family: 'Outfit', sans-serif; resize: vertical; outline: none; transition: all 0.3s ease; }
-        .short-answer-input:focus { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.05); }
-
-        /* ─── Result Screen ─── */
-        .result-hero { text-align: center; padding: 40px 20px 32px; }
-        .result-circle { 
-            width: 140px; height: 140px; border-radius: 50%; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            margin: 0 auto 24px; font-weight: 800; 
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-        .result-circle::after {
-            content: ''; position: absolute; inset: -8px; border-radius: 50%;
-            border: 2px dashed rgba(255,255,255,0.1); animation: rotate 20s linear infinite;
-        }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .result-circle .percentage { font-size: 36px; letter-spacing: -0.02em; }
-        .result-circle .label { font-size: 13px; font-weight: 600; opacity: 0.8; margin-top: -2px; }
-        .result-good { background: rgba(16, 185, 129, 0.1); border: 4px solid var(--green); color: #34d399; text-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
-        .result-mid { background: rgba(245, 158, 11, 0.1); border: 4px solid var(--yellow); color: #fbbf24; }
-        .result-low { background: rgba(244, 63, 94, 0.1); border: 4px solid var(--red); color: #fb7185; }
-        .result-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 20px 0; }
-        .result-stat { background: var(--surface); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; text-align: center; }
-        .result-stat-value { font-size: 24px; font-weight: 800; color: var(--accent); margin-bottom: 2px; }
-        .result-stat-label { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-
-        /* ─── Settings Screen ─── */
-        .settings-section { background: var(--surface); backdrop-filter: var(--glass-blur); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow-md); }
-        .settings-section-title { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 20px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .info-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
-        .info-row:last-child { border-bottom: none; }
-        .info-label { color: var(--text2); font-weight: 500; }
-        .info-value { color: var(--text); font-family: monospace; font-size: 13px; max-width: 60%; text-align: right; word-break: break-all; opacity: 0.9; }
-
-        /* ─── Browse Quiz Modal ─── */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; align-items: flex-end; justify-content: center; z-index: 999; padding: 0; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .modal-overlay.hidden { display: none; }
-        .modal-sheet { background: var(--surface-solid); border-radius: 24px 24px 0 0; border: 1px solid var(--border); border-bottom: none; padding: 32px 24px; width: 100%; max-height: 85vh; overflow-y: auto; transform: translateY(0); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.01em; }
-        .modal-subtitle { font-size: 14px; color: var(--text2); margin-bottom: 24px; line-height: 1.4; }
-
-        /* ─── Toast ─── */
-        #toast-container { position: fixed; bottom: 100px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast { 
-            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(16px); 
-            border: 1px solid var(--border); border-radius: var(--radius-md); 
-            padding: 14px 20px; font-size: 14px; font-weight: 600; color: #fff; 
-            max-width: 320px; animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); 
-        }
-        .toast.success { border-left: 4px solid var(--green); }
-        .toast.error { border-left: 4px solid var(--red); }
-        .toast.info { border-left: 4px solid var(--accent); }
-
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
-
-        /* ─── Empty State ─── */
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--text2); }
-        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state p { font-size: 14px; line-height: 1.6; }
-
-        /* ─── Deferred Banner ─── */
-        .deferred-banner { background: rgba(245, 158, 11, .1); border: 1px solid rgba(245, 158, 11, .3); border-radius: 10px; padding: 10px 14px; font-size: 12px; color: var(--yellow); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-    </style>
 </head>
 
 <body>
@@ -311,16 +45,21 @@
     <!-- ─── Header ─── -->
     <header>
         <div class="logo">
-            <div class="logo-icon">📱</div>
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/>
+                    <line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/>
+                </svg>
+            </div>
             <div class="logo-title">OffGridLink</div>
         </div>
-        <div class="header-badges">
-            <div class="badge" id="p2p-badge">
-                <span class="dot" id="p2p-dot"></span>
+        <div class="header-right">
+            <div class="badge badge-offline" id="p2p-badge">
+                <span class="status-dot offline" id="p2p-dot"></span>
                 <span id="p2p-label">P2P</span>
             </div>
-            <div class="badge" id="sync-status">
-                <span class="dot" id="sync-dot"></span>
+            <div class="badge badge-offline" id="sync-status">
+                <span class="status-dot offline" id="sync-dot"></span>
                 <span id="sync-text">Cloud: Off</span>
             </div>
         </div>
@@ -328,197 +67,259 @@
 
     <!-- ─── Reconnecting Banner ─── -->
     <div id="reconnect-banner">
-        <span>🔄</span> Reconnecting to teacher…
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Reconnecting to teacher…
     </div>
 
     <!-- ─── Main Content ─── -->
     <main>
 
-        <!-- Screen 1: Connect -->
+        <!-- ── Screen 1: Connect ── -->
         <div class="screen active" id="screen-connect">
+
+            <!-- Hero -->
             <div class="connect-hero">
-                <div class="hero-icon">🔗</div>
-                <h2>Connect to Teacher</h2>
+                <div class="hero-icon-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
+                <h1>Connect to Teacher</h1>
                 <p>Join the classroom network to receive quizzes</p>
             </div>
 
-            <div class="connect-card">
-                <button class="btn btn-ghost" id="start-scan-btn" style="margin-bottom: 16px; border-color: var(--accent); color: var(--text);">
-                    <span>📷</span> Scan Teacher or Magnet QR
+            <!-- Connect Card -->
+            <div class="card">
+                <button class="btn btn-ghost btn-full" id="start-scan-btn" style="margin-bottom:var(--space-3);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Scan QR Code
                 </button>
-                <div id="qr-reader" style="width:100%; display:none; border-radius:12px; overflow:hidden; margin-bottom: 16px; background: #000;"></div>
-                <button class="btn btn-danger btn-sm" id="stop-scan-btn" style="display:none; width:100%; margin-bottom: 16px;">Stop Scanning</button>
+                <div id="qr-reader" style="width:100%;display:none;border-radius:var(--radius-md);overflow:hidden;margin-bottom:var(--space-3);background:#000;"></div>
+                <button class="btn btn-ghost btn-full btn-sm" id="stop-scan-btn" style="display:none;margin-bottom:var(--space-3);">Stop Scanning</button>
 
-                <div class="form-group">
-                    <label class="form-label">Your Name</label>
-                    <input type="text" id="student-name" placeholder="Enter your full name">
+                <hr class="connect-divider">
+
+                <div class="input-group">
+                    <label class="input-label" for="student-name">Your Name</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                        <input type="text" id="student-name" placeholder="Enter your full name">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Teacher IP Address</label>
-                    <input type="text" id="teacher-ip-input" placeholder="e.g. 192.168.1.5">
+                <div class="input-group">
+                    <label class="input-label" for="teacher-ip-input">Teacher IP Address</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></span>
+                        <input type="text" id="teacher-ip-input" placeholder="192.168.1.5">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Teacher Peer ID</label>
-                    <input type="text" id="teacher-peer-id-input" placeholder="Paste teacher's peer ID here">
+                <div class="input-group">
+                    <label class="input-label" for="teacher-peer-id-input">Teacher Peer ID</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>
+                        <input type="text" id="teacher-peer-id-input" placeholder="Paste teacher's peer ID here">
+                    </div>
                 </div>
-                <button class="btn btn-primary" id="connect-btn">
-                    <span>⚡</span> Connect to Teacher
+                <button class="btn btn-primary btn-full btn-lg" id="connect-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg> Connect to Teacher
                 </button>
-                <button class="btn btn-ghost" id="browse-quizzes-btn" style="margin-top:10px;">
-                    <span>🔍</span> Browse Available Quizzes
+                <button class="btn btn-ghost btn-full" id="browse-quizzes-btn" style="margin-top:var(--space-2);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Browse Available Quizzes
                 </button>
             </div>
 
-            <div class="connect-card" id="my-id-card">
-                <div style="font-size:13px;color:var(--text2);margin-bottom:8px;">📡 Your Peer ID (share if needed)</div>
-                <div id="my-peer-id" style="font-size:12px;color:var(--accent);word-break:break-all;font-family:monospace;">Initializing…</div>
+            <!-- My Peer ID Card -->
+            <div class="card" id="my-id-card">
+                <div class="peer-id-label">Your Peer ID</div>
+                <div class="peer-id-display" id="my-peer-id">Initializing…</div>
+                <div class="peer-id-helper">Share this with your teacher if needed</div>
             </div>
 
-            <div class="connect-card">
-                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">🌊 Join via WebTorrent Magnet</div>
-                <div class="form-group">
-                    <label class="form-label">Magnet Link</label>
-                    <input type="text" id="magnet-input" placeholder="magnet:?xt=urn:btih:...">
+            <!-- Transfer Link Card -->
+            <div class="card">
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:var(--space-3);display:flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Transfer via Link</div>
+                <div class="input-group">
+                    <label class="input-label" for="magnet-input">Transfer Link</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+                        <input type="text" id="magnet-input" placeholder="magnet:?xt=urn:btih:... or http://teacher-ip:3000/api/quiz-package/...">
+                    </div>
                 </div>
-                <button class="btn btn-ghost" id="join-torrent-btn">⬇️ Download Quiz from Torrent</button>
+                <button class="btn btn-ghost btn-full" id="join-torrent-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Quiz from Link</button>
             </div>
+
         </div>
 
-        <!-- Screen 2: My Quizzes -->
+        <!-- ── Screen 2: My Quizzes ── -->
         <div class="screen" id="screen-quizzes">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                <div style="font-size:18px;font-weight:700;">My Quizzes</div>
+            <div class="quizzes-header">
+                <h2>My Quizzes</h2>
+                <button class="btn btn-ghost btn-sm" id="refresh-quizzes-btn" aria-label="Refresh quizzes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>
             </div>
-            <div id="pending-count-badge" style="display:none;" class="deferred-banner">⏳ Pending submissions</div>
+
+            <div id="pending-count-badge" class="pending-banner" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> You have unsubmitted answers
+            </div>
+
             <div id="quiz-list">
-                <div class="empty-state">
-                    <div class="icon">📚</div>
-                    <p>No quizzes yet.<br>Connect to your teacher to receive quizzes.</p>
+                <div class="quizzes-empty">
+                    <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+                    <h3>No quizzes yet</h3>
+                    <p>Connect to your teacher to receive quizzes.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Screen 3: Take Quiz -->
+        <!-- ── Screen 3: Take Quiz ── -->
         <div class="screen" id="screen-take-quiz">
+
+            <!-- Sticky attempt header -->
             <div class="quiz-attempt-header">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div class="quiz-attempt-top-row">
                     <button class="btn btn-ghost btn-sm" id="back-to-quizzes-btn">← Back</button>
-                    <div class="timer-badge" id="timer-badge">⏱ <span id="timer-display">--:--</span></div>
+                    <div class="timer-pill" id="timer-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span id="timer-display">--:--</span>
+                    </div>
                 </div>
                 <div class="quiz-attempt-title" id="attempt-quiz-title">Quiz Title</div>
                 <div class="quiz-attempt-meta" id="attempt-quiz-meta"></div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
                 </div>
+                <div class="progress-label" id="progress-label">0 of 0 answered</div>
             </div>
-            <div id="questions-container"></div>
-            <button class="btn btn-primary" id="submit-quiz-btn" style="margin-top:8px;">
-                ✅ Submit Answers
-            </button>
+
+            <!-- Questions -->
+            <div id="questions-container" class="questions-container"></div>
+
+            <!-- Submit bar -->
+            <div class="submit-bar">
+                <button class="btn btn-primary btn-full btn-lg" id="submit-quiz-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Submit Answers</button>
+                <div class="submit-bar-helper">Make sure you've answered all questions</div>
+            </div>
+
         </div>
 
-        <!-- Screen 4: Result -->
+        <!-- ── Screen 4: Result ── -->
         <div class="screen" id="screen-result">
+
             <div class="result-hero">
-                <div class="result-circle result-good" id="result-circle">
-                    <span class="percentage" id="result-percentage">--%</span>
-                    <span class="label">Score</span>
+                <div class="score-circle result-circle" id="result-circle" style="--pct:0;">
+                    <span class="score-circle-label percentage" id="result-percentage">--%</span>
                 </div>
-                <div style="font-size:20px;font-weight:700;margin-bottom:6px;" id="result-title">Quiz Complete!</div>
-                <div style="font-size:13px;color:var(--text2);" id="result-status">Answers submitted to teacher</div>
+                <h2 id="result-title">Quiz Complete!</h2>
+                <div class="result-submitted-text" id="result-status">✓ Answers submitted to teacher</div>
             </div>
-            <div class="result-stats">
-                <div class="result-stat">
-                    <div class="result-stat-value" id="result-correct">0</div>
+
+            <div class="result-stats-grid">
+                <div class="result-stat-card">
+                    <div class="result-stat-number" id="result-correct">0</div>
                     <div class="result-stat-label">Answered</div>
                 </div>
-                <div class="result-stat">
-                    <div class="result-stat-value" id="result-total-q">0</div>
-                    <div class="result-stat-label">Questions</div>
+                <div class="result-stat-card">
+                    <div class="result-stat-number" id="result-total-q">0</div>
+                    <div class="result-stat-label">Total Questions</div>
                 </div>
-                <div class="result-stat">
-                    <div class="result-stat-value" id="result-pts">0/0</div>
+                <div class="result-stat-card">
+                    <div class="result-stat-number" id="result-pts">0/0</div>
                     <div class="result-stat-label">Points</div>
                 </div>
             </div>
-            <div id="result-breakdown" style="margin-top:16px;"></div>
-            <button class="btn btn-ghost" id="back-from-result-btn" style="margin-top:12px;">← Back to My Quizzes</button>
+
+            <div class="card">
+                <div id="result-breakdown"></div>
+            </div>
+
+            <button class="btn btn-ghost btn-full" id="back-from-result-btn" style="margin-top:var(--space-3);">← Back to My Quizzes</button>
+
         </div>
 
-        <!-- Screen 5: Settings -->
+        <!-- ── Screen 5: Settings ── -->
         <div class="screen" id="screen-settings">
-            <div style="font-size:18px;font-weight:700;margin-bottom:16px;">⚙️ Settings</div>
+            <div style="font-family:'Sora',sans-serif;font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:var(--space-5);display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</div>
 
-            <div class="settings-section">
-                <div class="settings-section-title">👤 Student Profile</div>
-                <div class="form-group">
-                    <label class="form-label">Your Name</label>
-                    <input type="text" id="settings-name" placeholder="Enter your name">
+            <!-- Student Profile -->
+            <div class="card settings-section">
+                <div class="settings-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Student Profile</div>
+                <div class="input-group">
+                    <label class="input-label" for="settings-name">Your Name</label>
+                    <div class="input-icon-wrapper">
+                        <span class="input-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+                        <input type="text" id="settings-name" placeholder="Enter your name">
+                    </div>
                 </div>
                 <button class="btn btn-primary btn-sm" id="save-name-btn" style="width:auto;">Save Name</button>
             </div>
 
-            <div class="settings-section">
-                <div class="settings-section-title">🔗 Saved Connection</div>
-                <div class="info-row">
-                    <span class="info-label">Teacher IP</span>
-                    <span class="info-value" id="saved-teacher-ip">—</span>
+            <!-- Saved Connection -->
+            <div class="card settings-section">
+                <div class="settings-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Saved Connection</div>
+                <div class="connection-row">
+                    <div>
+                        <div class="connection-label">Teacher IP</div>
+                        <div class="connection-value" id="saved-teacher-ip">—</div>
+                    </div>
+                    <button class="copy-icon-btn" aria-label="Copy teacher IP"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">Teacher Peer ID</span>
-                    <span class="info-value" id="saved-teacher-peer-id">—</span>
+                <div class="connection-row">
+                    <div>
+                        <div class="connection-label">Teacher Peer ID</div>
+                        <div class="connection-value" id="saved-teacher-peer-id">—</div>
+                    </div>
+                    <button class="copy-icon-btn" aria-label="Copy teacher peer ID"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                 </div>
-                <div class="info-row">
-                    <span class="info-label">My Peer ID</span>
-                    <span class="info-value" id="saved-my-peer-id">—</span>
+                <div class="connection-row">
+                    <div>
+                        <div class="connection-label">My Peer ID</div>
+                        <div class="connection-value" id="saved-my-peer-id">—</div>
+                    </div>
+                    <button class="copy-icon-btn" aria-label="Copy my peer ID"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
                 </div>
             </div>
 
-            <div class="settings-section">
-                <div class="settings-section-title">🎓 Project Credits</div>
-                <div style="font-size:14px;color:var(--text);font-weight:600;margin-bottom:4px;">Developers:</div>
-                <p style="font-size:13px;color:var(--accent);margin-bottom:8px;">Logeshwaran V, Reyaash U</p>
-                <p style="font-size:11px;color:var(--text3);line-height:1.4;">Final Year Project - Developed with ❤️ for OffGridLink.</p>
+            <!-- Project Credits -->
+            <div class="card settings-section">
+                <div class="settings-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg> Project Credits</div>
+                <div class="credits-list">
+                    <div style="font-weight:600;color:var(--text-primary);margin-bottom:4px;">Developers</div>
+                    <div style="color:var(--accent);">Logeshwaran V, Reyaash U</div>
+                    <div style="margin-top:var(--space-2);">Final Year Project — Developed with <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--error)" stroke="none" style="display:inline;vertical-align:middle;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> for OffGridLink.</div>
+                </div>
             </div>
 
-            <div class="settings-section">
-                <div class="settings-section-title">🗑️ Data Management</div>
-                <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Clear all locally stored quizzes and submissions from this device.</p>
-                <button class="btn btn-danger btn-sm" id="clear-data-btn" style="width:auto;">🗑️ Clear Local Data</button>
+            <!-- Data Management -->
+            <div class="card settings-section">
+                <div class="settings-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Data Management</div>
+                <button class="btn btn-danger btn-full" id="clear-data-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Clear Local Data</button>
+                <div class="data-management-helper">This will delete all offline quiz data</div>
             </div>
+
         </div>
 
     </main>
 
     <!-- ─── Bottom Navigation ─── -->
-    <nav class="bottom-nav">
+    <nav id="bottom-nav">
         <button class="nav-btn active" data-screen="connect">
-            <span class="nav-icon">🔗</span>
+            <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
             <span>Connect</span>
         </button>
         <button class="nav-btn" data-screen="quizzes">
-            <span class="nav-icon">📚</span>
+            <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
             <span>Quizzes</span>
         </button>
         <button class="nav-btn" data-screen="settings">
-            <span class="nav-icon">⚙️</span>
+            <span class="nav-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
             <span>Settings</span>
         </button>
     </nav>
 
     <!-- ─── Browse Quiz Modal (bottom sheet) ─── -->
-    <div class="modal-overlay hidden" id="browse-modal">
-        <div class="modal-sheet">
-            <div class="modal-title">📚 Available Quizzes</div>
-            <div class="modal-subtitle">Tap a quiz to download it from the teacher</div>
-            <div id="browse-quiz-list">
-                <div class="empty-state" style="padding:30px 0;">
-                    <div class="icon">⏳</div>
-                    <p>Requesting quiz list from teacher…</p>
-                </div>
+    <div class="hidden" id="browse-modal">
+        <div class="modal-handle"></div>
+        <div style="font-family:'Sora',sans-serif;font-size:18px;font-weight:600;color:var(--text-primary);margin-bottom:var(--space-2);display:flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Available Quizzes</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:var(--space-4);">Tap a quiz to download it from the teacher</div>
+        <div id="browse-quiz-list">
+            <div class="quizzes-empty" style="padding:var(--space-6) 0;">
+                <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                <p>Requesting quiz list from teacher…</p>
             </div>
-            <button class="btn btn-ghost" id="close-browse-btn" style="margin-top:16px;">Close</button>
         </div>
+        <button class="btn btn-ghost btn-full" id="close-browse-btn" style="margin-top:var(--space-4);">Close</button>
     </div>
 
     <!-- ─── Toast Container ─── -->
@@ -602,11 +403,11 @@
             if (browseBtn) {
                 browseBtn.addEventListener('click', () => {
                     document.getElementById('browse-modal').classList.remove('hidden');
-                    document.getElementById('browse-quiz-list').innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">⏳</div><p>Requesting quiz list from teacher…</p></div>';
+                    document.getElementById('browse-quiz-list').innerHTML = '<div class="empty-state" style="padding:30px 0;text-align:center;color:var(--text-muted);"><p>Requesting quiz list from teacher…</p></div>';
                     if (typeof window.requestQuizList === 'function') {
                         window.requestQuizList();
                     } else {
-                        document.getElementById('browse-quiz-list').innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="icon">📶</div><p>Connect to teacher first before browsing quizzes.</p></div>';
+                        document.getElementById('browse-quiz-list').innerHTML = '<div class="empty-state" style="padding:30px 0;text-align:center;color:var(--text-muted);"><p>Connect to teacher first before browsing quizzes.</p></div>';
                     }
                 });
             }
@@ -641,11 +442,10 @@
                 card.className = 'quiz-card';
                 card.style.cursor = 'pointer';
                 card.innerHTML = `
-                    <div class="quiz-card-icon">📝</div>
                     <div class="quiz-card-title">${q.title}</div>
                     <div class="quiz-card-meta">${q.subject || 'General'} · ${q.questions} questions · ${q.totalPoints} pts · ${q.timeLimit ? q.timeLimit + ' min' : 'No limit'}</div>
-                    <div class="quiz-card-footer">
-                        <span class="status-pill pill-new">● Available</span>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:var(--space-3);">
+                        <span class="status-new">● Available</span>
                         <button class="btn btn-primary btn-sm">Download →</button>
                     </div>`;
                 card.querySelector('button').addEventListener('click', (ev) => {

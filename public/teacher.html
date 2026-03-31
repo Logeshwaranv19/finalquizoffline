@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>OffGridLink – Teacher Dashboard</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
@@ -76,6 +76,7 @@
             backdrop-filter: var(--glass-blur);
             border-bottom: 1px solid var(--border);
             padding: 16px 32px;
+            padding-top: max(env(safe-area-inset-top), 16px);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -1018,6 +1019,7 @@
 
             header {
                 padding: 10px 12px;
+                padding-top: max(env(safe-area-inset-top), 12px);
             }
 
             .qr-section {
@@ -1032,7 +1034,7 @@
     <!-- ─── Header ─── -->
     <header>
         <div class="logo">
-            <div class="logo-icon">⚡</div>
+            <div class="logo-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="19" cy="19" r="3"/><circle cx="5" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg></div>
             <div>
                 <div class="logo-title">OffGridLink</div>
                 <div class="logo-subtitle">Teacher Dashboard</div>
@@ -1047,19 +1049,16 @@
                 <span class="dot" id="sync-dot"></span>
                 <span id="sync-text">Cloud: Off</span>
             </div>
-            <button class="btn-icon" id="settings-btn" title="CouchDB Settings">⚙️</button>
+            <button class="btn-icon" id="settings-btn" title="CouchDB Settings"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         </div>
     </header>
 
     <!-- ─── Tabs ─── -->
     <nav class="tabs">
-        <button class="tab-btn active" data-tab="create">✏️ Create Quiz</button>
-        <button class="tab-btn" data-tab="quizzes">📚 My Quizzes <span class="tab-badge"
-                id="quiz-count">0</span></button>
-        <button class="tab-btn" data-tab="responses">📊 Responses <span class="tab-badge"
-                id="resp-count">0</span></button>
-        <button class="tab-btn" data-tab="connect">🔗 P2P Connect <span class="tab-badge"
-                id="connected-count">0</span></button>
+        <button class="tab-btn active" data-tab="create"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Create Quiz</button>
+        <button class="tab-btn" data-tab="quizzes"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> My Quizzes <span class="tab-badge" id="quiz-count">0</span></button>
+        <button class="tab-btn" data-tab="responses"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> Responses <span class="tab-badge" id="resp-count">0</span></button>
+        <button class="tab-btn" data-tab="connect"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> P2P Connect <span class="tab-badge" id="connected-count">0</span></button>
     </nav>
 
     <!-- ─── Main Content ─── -->
@@ -1068,7 +1067,7 @@
         <!-- ── Tab 1: Create Quiz ── -->
         <div class="tab-panel active" id="tab-create">
             <div class="card">
-                <div class="card-title">📝 Quiz Details</div>
+                <div class="card-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Quiz Details</div>
                 <div class="quiz-header-row">
                     <div class="form-group">
                         <label class="form-label">Quiz Title *</label>
@@ -1094,17 +1093,17 @@
             </div>
 
             <div class="card">
-                <div class="card-title">❓ Questions</div>
+                <div class="card-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Questions</div>
                 <div id="questions-list"></div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
-                    <button class="btn btn-ghost" id="add-mcq-btn">＋ Add MCQ</button>
-                    <button class="btn btn-ghost" id="add-short-btn">＋ Add Short Answer</button>
+                    <button class="btn btn-ghost" id="add-mcq-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add MCQ</button>
+                    <button class="btn btn-ghost" id="add-short-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Short Answer</button>
                 </div>
             </div>
 
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <button class="btn btn-ghost" id="save-draft-btn">💾 Save Draft</button>
-                <button class="btn btn-primary" id="publish-quiz-btn">✅ Publish Quiz</button>
+                <button class="btn btn-ghost" id="save-draft-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Draft</button>
+                <button class="btn btn-primary" id="publish-quiz-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Publish Quiz</button>
             </div>
         </div>
 
@@ -1130,7 +1129,7 @@
             </div>
             <div id="quiz-list">
                 <div class="empty-state">
-                    <div class="icon">📚</div>
+                    <div class="icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
                     <p>No quizzes yet. Go to <strong>Create Quiz</strong> to get started!</p>
                 </div>
             </div>
@@ -1147,14 +1146,14 @@
                     </select>
                 </div>
                 <div style="display:flex;gap:8px;">
-                    <button class="btn btn-ghost btn-sm" id="export-csv-btn">📥 Export CSV</button>
-                    <button class="btn btn-ghost btn-sm" id="export-pdf-btn">📄 Export PDF</button>
-                    <button class="btn btn-ghost btn-sm" id="export-excel-btn">📊 Export Excel</button>
+                    <button class="btn btn-ghost btn-sm" id="export-csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export CSV</button>
+                    <button class="btn btn-ghost btn-sm" id="export-pdf-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Export PDF</button>
+                    <button class="btn btn-ghost btn-sm" id="export-excel-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> Export Excel</button>
                 </div>
             </div>
             <div id="responses-list">
                 <div class="empty-state">
-                    <div class="icon">📊</div>
+                    <div class="icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></div>
                     <p>No responses received yet.</p>
                 </div>
             </div>
@@ -1164,7 +1163,7 @@
         <div class="tab-panel" id="tab-connect">
 
             <div class="peer-panel">
-                <div style="font-size:15px;font-weight:700;margin-bottom:4px;">🔗 Teacher Peer ID</div>
+                <div style="font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Teacher Peer ID</div>
                 <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Share this ID (or the QR code) with
                     students to connect</div>
                 <div class="peer-id-box">
@@ -1174,26 +1173,25 @@
 
                 <div class="qr-section">
                     <div>
-                        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">📷 Scan to connect</div>
+                        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Scan to connect</div>
                         <div id="qr-container">
-                            <div style="color:var(--text3);font-size:12px;text-align:center;">Generating QR…<br><span
-                                    style="font-size:20px;margin-top:8px;display:block;">⏳</span></div>
+                            <div style="color:var(--text3);font-size:12px;text-align:center;">Generating QR…<br><span style="margin-top:8px;display:block;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></div>
                         </div>
                     </div>
                     <div class="qr-info">
-                        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;">🌐 Your Local IP Address</div>
+                        <div style="font-size:12px;color:var(--text2);margin-bottom:4px;display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Your Local IP Address</div>
                         <div class="ip-display">
                             <div class="ip-label">Enter your IP – share it with students</div>
                             <input type="text" id="teacher-ip-display" placeholder="e.g. 192.168.1.5"
                                 style="background:transparent;border:none;color:var(--accent);font-size:16px;font-weight:700;font-family:monospace;width:100%;outline:none;padding:0;"
                                 title="Enter your local network IP address">
                         </div>
-                        <div style="font-size:11px;color:var(--text3);margin-top:6px;">💡 Windows: open <strong
+                        <div style="font-size:11px;color:var(--text3);margin-top:6px;display:flex;align-items:flex-start;gap:5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>Windows: open <strong
                                 style='color:var(--text2)'>Command Prompt</strong> → type <code
                                 style='color:var(--accent);background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:11px;'>ipconfig</code>
-                            → look for <strong style='color:var(--text2)'>IPv4 Address</strong></div>
+                            → look for <strong style='color:var(--text2)'>IPv4 Address</strong></span></div>
                         <div class="connected-peers" style="margin-top:14px;">
-                            <div style="color:var(--text3);font-size:12px;margin-bottom:6px;">👥 Connected Students:
+                            <div style="color:var(--text3);font-size:12px;margin-bottom:6px;display:flex;align-items:center;gap:5px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Connected Students:
                             </div>
                             <div id="connected-peers-list">
                                 <span style="color:var(--text3);font-size:12px;">None connected</span>
@@ -1204,7 +1202,7 @@
             </div>
 
             <div class="card">
-                <div class="card-title">📡 Distribute Quiz via P2P</div>
+                <div class="card-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l11 11 4-4 7-7"/><path d="M16 6l6 6"/><path d="M1 12l5 5"/></svg> Transfer Quiz</div>
                 <div class="form-group">
                     <label class="form-label">Select Quiz to Distribute</label>
                     <select id="distribute-quiz-select">
@@ -1212,15 +1210,15 @@
                     </select>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <button class="btn btn-primary" id="send-quiz-btn">📤 Send to All Students</button>
-                    <button class="btn btn-ghost" id="seed-torrent-btn">🌊 Seed via WebTorrent</button>
+                    <button class="btn btn-primary" id="local-lan-transfer-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> Local Wi-Fi Transfer</button>
+                    <button class="btn btn-ghost" id="seed-torrent-btn"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Seed via WebTorrent</button>
                 </div>
                 <div id="torrent-info" style="display:none;margin-top:20px;padding:15px;background:rgba(0,0,0,0.2);border-radius:10px;border:1px solid rgba(245,158,11,0.2);">
-                    <div style="font-size:14px;font-weight:600;color:var(--yellow);margin-bottom:8px;">🔗 Magnet Link:</div>
+                    <div id="transfer-link-label" style="font-size:14px;font-weight:600;color:var(--yellow);margin-bottom:8px;display:flex;align-items:center;gap:6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> WebTorrent Magnet Link:</div>
                     <div id="magnet-display" style="font-family:monospace;font-size:11px;word-break:break-all;color:var(--text2);margin-bottom:15px;max-height:60px;overflow-y:auto;padding:8px;background:rgba(0,0,0,0.3);border-radius:6px;"></div>
 
                     <div style="display:flex;flex-direction:column;align-items:center;gap:15px;">
-                        <button class="btn btn-ghost btn-sm" id="copy-magnet-btn" style="width:auto;">📋 Copy Magnet</button>
+                        <button class="btn btn-ghost btn-sm" id="copy-magnet-btn" style="width:auto;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Link</button>
 
                         <div id="magnet-qr-container" style="padding:15px;background:#fff;border-radius:12px;display:flex;justify-content:center;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,0.3);">
                             <div id="magnet-qr"></div>
@@ -1230,7 +1228,7 @@
             </div>
 
             <div class="card">
-                <div class="card-title">ℹ️ Connection Instructions</div>
+                <div class="card-title"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Connection Instructions</div>
                 <div class="instruction-step">
                     <div class="step-num">1</div>
                     <div class="step-text">Make sure all devices are on the <strong>same Wi-Fi network</strong>. No
@@ -1248,8 +1246,7 @@
                 </div>
                 <div class="instruction-step">
                     <div class="step-num">4</div>
-                    <div class="step-text">Select a published quiz and click <strong>Send to All Students</strong> to
-                        distribute.</div>
+                    <div class="step-text">Select a published quiz and choose either <strong>Local Wi-Fi Transfer</strong> (direct LAN) or <strong>Seed via WebTorrent</strong> (WebTorrent only).</div>
                 </div>
                 <div class="instruction-step">
                     <div class="step-num">5</div>
@@ -1264,7 +1261,7 @@
     <!-- ─── Settings Modal ─── -->
     <div class="modal-overlay hidden" id="settings-modal">
         <div class="modal-box">
-            <div class="modal-title">⚙️ CouchDB Sync Settings</div>
+            <div class="modal-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>CouchDB Sync Settings</div>
             <div class="modal-subtitle">Configure optional cloud backup. Leave IP blank to work fully offline.</div>
             <div class="form-group">
                 <label class="form-label">CouchDB Server IP</label>
@@ -1283,7 +1280,7 @@
                 <input type="password" id="settings-pass" placeholder="password">
             </div>
             <div class="modal-actions">
-                <button class="btn btn-ghost btn-sm" id="test-conn-btn">🔌 Test Connection</button>
+                <button class="btn btn-ghost btn-sm" id="test-conn-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg> Test Connection</button>
                 <button class="btn btn-primary" id="save-settings-btn" style="flex:1">Save &amp; Connect</button>
                 <button class="btn btn-ghost" id="close-settings-btn">Cancel</button>
             </div>
@@ -1328,8 +1325,8 @@
                     const magnet = document.getElementById('magnet-display').textContent;
                     if (!magnet) return;
                     navigator.clipboard.writeText(magnet).then(() => {
-                        copyMagnetBtn.textContent = '✓ Copied!';
-                        setTimeout(() => { copyMagnetBtn.textContent = '📋 Copy Magnet'; }, 2000);
+                        copyMagnetBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                        setTimeout(() => { copyMagnetBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Link'; }, 2000);
                     });
                 });
             }

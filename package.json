@@ -47,6 +47,7 @@
     "@capacitor/core": "^6.2.1",
     "@capacitor/filesystem": "^6.0.4",
     "@capacitor/share": "^6.0.4",
+    "bittorrent-tracker": "^9.19.0",
     "http-server": "^14.1.1",
     "peer": "^1.0.2"
   },
