@@ -20,7 +20,7 @@ Teacher's Laptop
 
 <img width="1917" height="1114" alt="Screenshot 2026-04-02 214619" src="https://github.com/user-attachments/assets/5eb8e257-33c3-406f-b63a-215abe042ae9" />
 
-Student's phone
+##Student's phone
 ![1](https://github.com/user-attachments/assets/b7225aea-96d7-420c-bdc9-2b51014517d1)
 
 ![2 1](https://github.com/user-attachments/assets/dad92e5e-11be-4883-b7fd-d62bea38d1ef)
