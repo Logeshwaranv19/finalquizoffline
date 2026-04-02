@@ -7,27 +7,11 @@
 The application leverages **Progressive Web App (PWA)** technologies and **Electron** to run seamlessly on both web browsers and desktop platforms, making it accessible in low-connectivity scenarios.
 
 ---
-
-## 🎬 Demo / Screenshot
-Teacher's Laptop
-<img width="1565" height="952" alt="Screenshot 2026-04-02 214505" src="https://github.com/user-attachments/assets/9c41810f-a271-4449-aff4-ed9a19ca1552" />
-
-<img width="1546" height="929" alt="Screenshot 2026-04-02 214517" src="https://github.com/user-attachments/assets/86a45f36-4e6d-4c94-90f9-8000cfe5961e" />
-
-<img width="1541" height="915" alt="Screenshot 2026-04-02 214531" src="https://github.com/user-attachments/assets/f5d21546-a69c-4e1b-aa4c-9a7afd7ee9d5" />
-
-<img width="1919" height="1112" alt="Screenshot 2026-04-02 214552" src="https://github.com/user-attachments/assets/671d30e0-13ae-484c-8b3a-5b633d51e912" />
-
-<img width="1917" height="1114" alt="Screenshot 2026-04-02 214619" src="https://github.com/user-attachments/assets/5eb8e257-33c3-406f-b63a-215abe042ae9" />
-
-##Student's phone
-![1](https://github.com/user-attachments/assets/b7225aea-96d7-420c-bdc9-2b51014517d1)
-
-![2 1](https://github.com/user-attachments/assets/dad92e5e-11be-4883-b7fd-d62bea38d1ef)
-
-![2](https://github.com/user-attachments/assets/12993ec3-0bf2-4193-b4a5-d4bcac1fc95f)
-
-![mk](https://github.com/user-attachments/assets/981c0454-892a-479c-ae4e-0f5cdda0d89e)
+🎬 Demo / Screenshot
+💻 Teacher's Laptop
+<p align="center"> <img src="https://github.com/user-attachments/assets/9c41810f-a271-4449-aff4-ed9a19ca1552" width="700"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/86a45f36-4e6d-4c94-90f9-8000cfe5961e" width="700"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/f5d21546-a69c-4e1b-aa4c-9a7afd7ee9d5" width="700"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/671d30e0-13ae-484c-8b3a-5b633d51e912" width="700"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/5eb8e257-33c3-406f-b63a-215abe042ae9" width="700"/> </p>
+📱 Student's Phone
+<p align="center"> <img src="https://github.com/user-attachments/assets/b7225aea-96d7-420c-bdc9-2b51014517d1" width="300"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/dad92e5e-11be-4883-b7fd-d62bea38d1ef" width="300"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/12993ec3-0bf2-4193-b4a5-d4bcac1fc95f" width="300"/> </p> <p align="center"> <img src="https://github.com/user-attachments/assets/981c0454-892a-479c-ae4e-0f5cdda0d89e" width="300"/> </p>
 
 
 
