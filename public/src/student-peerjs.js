@@ -8,6 +8,7 @@
     let teacherConn = null;
     let studentPeerId = null;
     let reconnectTimer = null;
+    let countdownInterval = null;
     let savedTeacherIP = null;
     let savedTeacherId = null;
     let savedStudentName = null;
@@ -227,11 +228,20 @@
             case 'submission_ack':
                 console.log('[Student PeerJS] Submission acknowledged:', data.submissionId);
                 showToast('Your answers were received by the teacher!', 'success');
-                try {
-                    const sub = await window.submissionsDB.get(data.submissionId);
-                    sub.syncStatus = 'received_by_teacher';
-                    await window.submissionsDB.put(sub);
-                } catch (e) {}
+                if (data.submissionId) {
+                    try {
+                        const sub = await window.submissionsDB.get(data.submissionId);
+                        sub.syncStatus = 'received_by_teacher';
+                        await window.submissionsDB.put(sub);
+                    } catch (e) {
+                        console.error('[Student PeerJS] Failed to update submission ACK status:', e);
+                    }
+                }
+                break;
+
+            case 'quiz_error':
+                console.error('[Student PeerJS] Quiz error from teacher:', data.message);
+                showToast(data.message || 'Failed to receive quiz. Please ask the teacher to resend.', 'error');
                 break;
 
             case 'pong':
@@ -322,7 +332,7 @@
                 try {
                     const saved = await window.submissionsDB.get(subDoc._id);
                     await window.submissionsDB.put({ ...saved, syncStatus: 'sent' });
-                } catch (e) {}
+                } catch (e) { console.error('[Student] Failed to update submission sync status:', e); }
             } catch (err) {
                 console.warn('[Student] P2P send failed, staying deferred:', err);
                 showToast('Saved locally. Will sync when teacher is available.', 'info');
@@ -359,7 +369,7 @@
                     console.warn('[Student] Retry failed for:', sub._id, e);
                 }
             }
-        } catch (e) {}
+        } catch (e) { console.error('[Student] Failed to load pending submissions for retry:', e); }
     }
 
     function schedulePendingRetry() {
@@ -383,7 +393,29 @@
         }
         if (label) label.textContent = text || (connected ? 'Connected' : 'P2P');
         if (banner) {
-            banner.style.display = connected ? 'none' : 'flex';
+            if (connected) {
+                banner.style.display = 'none';
+                if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+                const cd = document.getElementById('reconnect-countdown');
+                if (cd) cd.textContent = '';
+            } else {
+                banner.style.display = 'flex';
+                // Start 5s countdown display
+                if (countdownInterval) clearInterval(countdownInterval);
+                let secs = 5;
+                const cd = document.getElementById('reconnect-countdown');
+                if (cd) cd.textContent = `(${secs}s)`;
+                countdownInterval = setInterval(() => {
+                    secs--;
+                    if (secs <= 0) {
+                        clearInterval(countdownInterval);
+                        countdownInterval = null;
+                        if (cd) cd.textContent = '';
+                    } else {
+                        if (cd) cd.textContent = `(${secs}s)`;
+                    }
+                }, 1000);
+            }
         }
     }
 
@@ -405,11 +437,28 @@
             connectBtn.addEventListener('click', () => {
                 const name = document.getElementById('student-name').value.trim();
                 const teacherIP = document.getElementById('teacher-ip-input').value.trim();
-                const teacherId = document.getElementById('teacher-peer-id-input').value.trim();
+                const rawId = document.getElementById('teacher-peer-id-input').value.trim();
                 if (!name) { showToast('Please enter your name', 'error'); return; }
                 if (!teacherIP) { showToast('Please enter the Teacher IP', 'error'); return; }
-                if (!teacherId) { showToast('Please enter the Teacher Peer ID', 'error'); return; }
+                if (!rawId) { showToast('Please enter the Teacher Peer ID', 'error'); return; }
+                // Normalize: "482-391" or "482391" → "teacher-482391"; already-full IDs pass through
+                const digitsOnly = rawId.replace(/-/g, '');
+                const teacherId = /^\d{6}$/.test(digitsOnly)
+                    ? 'teacher-' + digitsOnly
+                    : rawId;
                 window.connectToTeacher(teacherIP, teacherId, name);
+            });
+        }
+
+        // Manual reconnect button in banner
+        const reconnectNowBtn = document.getElementById('reconnect-now-btn');
+        if (reconnectNowBtn) {
+            reconnectNowBtn.addEventListener('click', () => {
+                if (savedTeacherIP && savedTeacherId) {
+                    window.connectToTeacher(savedTeacherIP, savedTeacherId, savedStudentName || localStorage.getItem('student-name') || 'Student');
+                } else {
+                    showToast('No saved teacher info. Please connect manually.', 'error');
+                }
             });
         }
 

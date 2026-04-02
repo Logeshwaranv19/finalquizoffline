@@ -4,6 +4,8 @@
 (function () {
     const PEERJS_PATH = './peerjs.min.js';
 
+    const MAX_PEERS = 6;
+    const MAX_QUIZ_CACHE_SIZE = 100; // Cap cache size to prevent memory bloat (Issue #10)
     let peer = null;
     let connectedPeers = {}; // { peerId: DataConnection }
     let connectedNames = {}; // { peerId: studentName }
@@ -13,11 +15,21 @@
     // ─── Stable Teacher Peer ID ──────────────────────────────
     function getOrCreateTeacherId() {
         let id = localStorage.getItem('teacher-stable-peer-id');
-        if (!id) {
-            id = 'teacher-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+        const code = id ? id.replace(/^teacher-/, '') : '';
+        // Accept only "teacher-NNNNNN" (6 digits); migrate all legacy IDs
+        if (!id || !/^\d{6}$/.test(code)) {
+            const newCode = String(Math.floor(100000 + Math.random() * 900000));
+            id = 'teacher-' + newCode;
             localStorage.setItem('teacher-stable-peer-id', id);
         }
         return id;
+    }
+
+    // Format "teacher-482391" → "482-391" for display
+    function formatPeerIdForDisplay(id) {
+        const code = id.replace(/^teacher-/, '');
+        if (/^\d{6}$/.test(code)) return code.slice(0, 3) + '-' + code.slice(3);
+        return id; // legacy IDs shown as-is
     }
 
     // ── AUTO-DETECT IP HELPER ─────────────────────────────
@@ -67,7 +79,7 @@
     function initTeacherPeer() {
         const stableId = getOrCreateTeacherId();
         const el = document.getElementById('teacher-peer-id');
-        if (el) el.textContent = stableId;
+        if (el) el.textContent = formatPeerIdForDisplay(stableId);
 
         // ── AUTO-DETECT IP IMMEDIATELY ──
         autoDetectIP(stableId);
@@ -153,7 +165,7 @@
             teacherPeerId = id;
             localStorage.setItem('teacher-stable-peer-id', id);
             const el = document.getElementById('teacher-peer-id');
-            if (el) el.textContent = id;
+            if (el) el.textContent = formatPeerIdForDisplay(id);
             updateP2PStatus(true, 'P2P Online (Public Broker)');
             window.teacherPeerId = id;
             
@@ -173,6 +185,12 @@
     }
 
     function setupConnection(conn) {
+        if (Object.keys(connectedPeers).length >= MAX_PEERS) {
+            conn.send({ type: 'error', message: 'Teacher peer limit reached. Try again later.' });
+            setTimeout(() => conn.close(), 200);
+            console.warn('[PeerJS] Rejected connection — peer limit reached:', conn.peer);
+            return;
+        }
         conn.on('open', () => {
             connectedPeers[conn.peer] = conn;
             const studentName = (conn.metadata && conn.metadata.name) ? conn.metadata.name : conn.peer.substring(0, 8) + '…';
@@ -259,6 +277,11 @@
             }
         } catch (err) {
             console.error('[PeerJS] Error sending quiz:', err);
+            if (connectedPeers[peerId]) {
+                try {
+                    connectedPeers[peerId].send({ type: 'quiz_error', message: 'Quiz not found or unavailable. Ask your teacher to resend.' });
+                } catch (_) {}
+            }
         }
     }
 
@@ -343,12 +366,23 @@
             studentVersion = makeStudentVersion(quiz);
         }
 
+        let sent = 0, failed = 0;
         peers.forEach(peerId => {
-            connectedPeers[peerId].send({ type: 'quiz_data', quiz: studentVersion });
+            try {
+                connectedPeers[peerId].send({ type: 'quiz_data', quiz: studentVersion });
+                sent++;
+            } catch (err) {
+                console.error('[PeerJS] Failed to send to peer:', peerId, err);
+                failed++;
+            }
         });
 
-        showToast(`Quiz sent to ${peers.length} student(s)`, 'success');
-        console.log('[PeerJS] Quiz broadcasted to', peers.length, 'peers');
+        if (failed === 0) {
+            showToast(`Quiz sent to all ${sent} student(s)`, 'success');
+        } else {
+            showToast(`Quiz sent to ${sent}/${peers.length} student(s) — ${failed} failed`, 'error');
+        }
+        console.log('[PeerJS] Quiz broadcasted to', sent, 'peers,', failed, 'failed');
     };
 
     // ─── Strip Answer Fields for Students ───────────────────
@@ -368,7 +402,8 @@
                 type: q.type,
                 text: q.text,
                 options: q.options || [],
-                points: q.points
+                points: q.points,
+                answerType: q.answerType || 'single'
                 // answer field intentionally stripped
             }))
         };
@@ -379,19 +414,30 @@
     async function preloadQuizCache() {
         try {
             const result = await window.quizzesDB.allDocs({ include_docs: true });
+            const allQuizzes = result.rows
+                .map(r => r.doc)
+                .filter(d => d && d.type === 'quiz')
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // Sort by recency
+
+            // Clear and rebuild cache (Issue #11 - removed full rebuild)
             quizCache = {};
-            result.rows.forEach(r => {
-                if (r.doc && r.doc.type === 'quiz') {
-                    quizCache[r.doc._id] = r.doc;
-                }
+            
+            // Cache only the most recent quizzes up to MAX_QUIZ_CACHE_SIZE (Issue #10 - cap size)
+            allQuizzes.slice(0, MAX_QUIZ_CACHE_SIZE).forEach(quiz => {
+                quizCache[quiz._id] = quiz;
             });
-            console.log('[PeerJS] Quiz cache loaded:', Object.keys(quizCache).length, 'quizzes');
+
+            console.log('[PeerJS] Quiz cache loaded:', Object.keys(quizCache).length, '/', allQuizzes.length, 'quizzes');
+            
+            if (allQuizzes.length > MAX_QUIZ_CACHE_SIZE) {
+                console.warn(`[PeerJS] Cache size capped at ${MAX_QUIZ_CACHE_SIZE}. Total quizzes: ${allQuizzes.length}`);
+            }
         } catch (e) {
             console.warn('[PeerJS] Cache preload failed:', e);
         }
     }
 
-    // Refresh cache when DB changes
+    // Refresh cache when DB changes or quiz is deleted
     window.addEventListener('db-changed', () => preloadQuizCache());
     window.addEventListener('quiz-saved', () => preloadQuizCache());
 
@@ -499,10 +545,10 @@
         if (copyBtn) {
             copyBtn.addEventListener('click', () => {
                 const id = document.getElementById('teacher-peer-id').textContent;
-                if (!id || id === 'Initializing…') { showToast('Peer ID not ready yet', 'error'); return; }
+                if (!id || id === '···-···' || id === 'Initializing…') { showToast('Peer ID not ready yet', 'error'); return; }
                 navigator.clipboard.writeText(id).then(() => {
-                    copyBtn.textContent = '✓ Copied!';
-                    setTimeout(() => { copyBtn.textContent = '📋 Copy ID'; }, 2000);
+                    copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                    setTimeout(() => { copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy ID'; }, 2000);
                 }).catch(() => {
                     // Fallback for older browsers
                     const el = document.createElement('textarea');
@@ -511,8 +557,8 @@
                     el.select();
                     document.execCommand('copy');
                     document.body.removeChild(el);
-                    copyBtn.textContent = '✓ Copied!';
-                    setTimeout(() => { copyBtn.textContent = '📋 Copy ID'; }, 2000);
+                    copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                    setTimeout(() => { copyBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy ID'; }, 2000);
                 });
             });
         }
