@@ -1,6 +1,12 @@
 // OffGridLink - Student App Logic
 // Quiz list, quiz attempt (timer, MCQ options), submission, results
 
+function esc(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ─── Toast System ───────────────────────────────────────
@@ -23,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let studentAnswers = {};
     let timerInterval = null;
     let timeLeft = 0;
+    let isSubmitting = false;
 
     // ─── Quiz List ───────────────────────────────────────────
     async function loadQuizList() {
@@ -64,9 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         div.innerHTML = `
             <div class="quiz-card-status">${pill}</div>
-            <div class="quiz-card-title">${quiz.title}</div>
+            <div class="quiz-card-title">${esc(quiz.title)}</div>
             <div class="quiz-card-meta">
-                <span class="pill">${quiz.subject || 'General'}</span>
+                <span class="pill">${esc(quiz.subject || 'General')}</span>
                 <span class="pill">${quiz.questions ? quiz.questions.length : 0} questions</span>
                 <span class="pill">${quiz.totalPoints || 0} pts</span>
                 <span class="pill">${quiz.timeLimit ? quiz.timeLimit + ' min' : 'No limit'}</span>
@@ -93,15 +100,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        div.addEventListener('click', () => startQuiz(quiz));
+        div.addEventListener('click', () => {
+            if (quiz.status === 'submitted') return; // already locked
+            startQuiz(quiz);
+        });
 
         return div;
     }
 
     // ─── Start Quiz ──────────────────────────────────────────
     async function startQuiz(quiz) {
+        if (quiz.status === 'submitted') {
+            showToast('You have already submitted this quiz.', 'info');
+            return;
+        }
         currentQuiz = quiz;
         studentAnswers = {};
+        isSubmitting = false;
 
         // Load saved answers if attempted before
         try {
@@ -112,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (existing && existing.answers) {
                 studentAnswers = { ...existing.answers };
             }
-        } catch (e) { }
+        } catch (e) { console.error('[Student] Failed to load saved answers:', e); }
 
         // Set up attempt header
         document.getElementById('attempt-quiz-title').textContent = quiz.title;
@@ -138,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 updated.status = 'attempted';
                 await window.quizzesDB.put(updated);
             }
-        } catch (e) { }
+        } catch (e) { console.error('[Student] Failed to mark quiz as attempted:', e); }
 
         window.showScreen('screen-take-quiz');
         window.scrollTo(0, 0);
@@ -156,13 +171,25 @@ document.addEventListener('DOMContentLoaded', () => {
             let answerHtml = '';
             if (q.type === 'mcq') {
                 const letters = ['A', 'B', 'C', 'D'];
-                answerHtml = `<div class="mcq-options">` + (q.options || []).map((opt, i) =>
-                    `<button class="option-btn ${studentAnswers[q.id] === letters[i] ? 'selected' : ''}"
-                        data-qid="${q.id}" data-val="${letters[i]}">
-                        <span class="option-letter">${letters[i]}</span>
-                        <span>${opt || '(empty option)'}</span>
-                    </button>`
-                ).join('') + `</div>`;
+                if (q.answerType === 'multi') {
+                    const selected = Array.isArray(studentAnswers[q.id]) ? studentAnswers[q.id] : [];
+                    answerHtml = `<div class="mcq-options">` + (q.options || []).map((opt, i) => {
+                        const isSelected = selected.includes(letters[i]);
+                        return `<button class="option-btn${isSelected ? ' selected' : ''}"
+                            data-qid="${q.id}" data-val="${letters[i]}" data-multi="1">
+                            <span class="option-letter" style="${isSelected ? 'background:var(--accent);color:#fff' : ''}">${isSelected ? '✓' : letters[i]}</span>
+                            <span>${esc(opt) || '(empty option)'}</span>
+                        </button>`;
+                    }).join('') + `</div><div style="font-size:11px;color:var(--text-muted);margin-top:6px;margin-bottom:2px;">Select all that apply</div>`;
+                } else {
+                    answerHtml = `<div class="mcq-options">` + (q.options || []).map((opt, i) =>
+                        `<button class="option-btn ${studentAnswers[q.id] === letters[i] ? 'selected' : ''}"
+                            data-qid="${q.id}" data-val="${letters[i]}">
+                            <span class="option-letter">${letters[i]}</span>
+                            <span>${esc(opt) || '(empty option)'}</span>
+                        </button>`
+                    ).join('') + `</div>`;
+                }
             } else {
                 answerHtml = `<textarea class="short-answer-input" data-qid="${q.id}"
                     placeholder="Type your answer here..." rows="3">${studentAnswers[q.id] || ''}</textarea>`;
@@ -171,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
             div.innerHTML = `
                 <div class="question-text">
                     <span class="question-number-badge">${index + 1}</span>
-                    ${q.text}
+                    ${esc(q.text)}
                 </div>
                 <div style="font-size:11px;color:var(--text-muted);margin-bottom:var(--space-3);">${q.points || 1} pt${(q.points || 1) > 1 ? 's' : ''}</div>
                 ${answerHtml}`;
@@ -181,13 +208,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 btn.addEventListener('click', () => {
                     const qid = btn.dataset.qid;
                     const val = btn.dataset.val;
-                    studentAnswers[qid] = val;
+                    const letterEl = btn.querySelector('.option-letter');
 
-                    // Update visual state
-                    div.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
-                    btn.classList.add('selected');
-                    btn.querySelector('.option-letter').style.background = 'var(--accent)';
-                    btn.querySelector('.option-letter').style.color = '#fff';
+                    if (btn.dataset.multi === '1') {
+                        // Multi-answer: toggle selection
+                        if (!Array.isArray(studentAnswers[qid])) studentAnswers[qid] = [];
+                        const idx = studentAnswers[qid].indexOf(val);
+                        if (idx >= 0) {
+                            studentAnswers[qid].splice(idx, 1);
+                            btn.classList.remove('selected');
+                            letterEl.style.background = '';
+                            letterEl.style.color = '';
+                            letterEl.textContent = val;
+                        } else {
+                            studentAnswers[qid].push(val);
+                            btn.classList.add('selected');
+                            letterEl.style.background = 'var(--accent)';
+                            letterEl.style.color = '#fff';
+                            letterEl.textContent = '✓';
+                        }
+                    } else {
+                        // Single-answer: exclusive select
+                        studentAnswers[qid] = val;
+                        div.querySelectorAll('.option-btn').forEach(b => {
+                            b.classList.remove('selected');
+                            b.querySelector('.option-letter').style.background = '';
+                            b.querySelector('.option-letter').style.color = '';
+                        });
+                        btn.classList.add('selected');
+                        letterEl.style.background = 'var(--accent)';
+                        letterEl.style.color = '#fff';
+                    }
 
                     updateProgress();
                 });
@@ -211,7 +262,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateProgress() {
         if (!currentQuiz) return;
         const total = currentQuiz.questions.length;
-        const answered = Object.keys(studentAnswers).filter(k => studentAnswers[k]).length;
+        const answered = Object.keys(studentAnswers).filter(k => {
+            const a = studentAnswers[k];
+            return Array.isArray(a) ? a.length > 0 : !!a;
+        }).length;
         const pct = total > 0 ? (answered / total) * 100 : 0;
         const bar = document.getElementById('progress-fill');
         if (bar) bar.style.width = pct + '%';
@@ -232,8 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (timeLeft <= 60 && badge) badge.classList.add('urgent');
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
-                showToast('⏰ Time is up! Submitting automatically…', 'error');
-                submitQuiz(true);
+                if (!isSubmitting) {
+                    showToast('Time is up! Submitting automatically…', 'error');
+                    submitQuiz(true);
+                }
             }
         }, 1000);
     }
@@ -245,11 +301,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function submitQuiz(autoSubmit = false) {
-        if (!currentQuiz) return;
+        if (!currentQuiz || isSubmitting) return;
+        isSubmitting = true;
 
-        const unanswered = currentQuiz.questions.filter(q => !studentAnswers[q.id]);
+        const submitBtn = document.getElementById('submit-quiz-btn');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+
+        const unanswered = currentQuiz.questions.filter(q => {
+            const a = studentAnswers[q.id];
+            return Array.isArray(a) ? a.length === 0 : !a;
+        });
         if (!autoSubmit && unanswered.length > 0) {
-            if (!confirm(`You have ${unanswered.length} unanswered question(s). Submit anyway?`)) return;
+            if (!confirm(`You have ${unanswered.length} unanswered question(s). Submit anyway?`)) {
+                isSubmitting = false;
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Quiz'; }
+                return;
+            }
         }
 
         clearInterval(timerInterval);
@@ -264,12 +331,16 @@ document.addEventListener('DOMContentLoaded', () => {
             studentName
         );
 
-        // Mark quiz as submitted
+        // Mark quiz as submitted and lock it
         try {
             const updated = await window.quizzesDB.get(currentQuiz._id);
             updated.status = 'submitted';
+            updated.submittedAt = new Date().toISOString();
             await window.quizzesDB.put(updated);
-        } catch (e) { }
+            currentQuiz.status = 'submitted'; // keep in-memory state in sync
+        } catch (e) {
+            console.error('[Student] Failed to mark quiz as submitted:', e);
+        }
 
         // Show result screen (local preview since we don't have teacher scoring yet)
         showLocalResult(currentQuiz, studentAnswers, subId);
@@ -284,9 +355,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('result-title').textContent = 'Quiz Submitted! 🎉';
         document.getElementById('result-status').textContent = 'Your answers have been saved. Teacher will share your score.';
         document.getElementById('result-percentage').textContent = '✓';
-        document.getElementById('result-correct').textContent = Object.keys(answers).filter(k => answers[k]).length;
+        const answeredCount = Object.keys(answers).filter(k => {
+            const a = answers[k]; return Array.isArray(a) ? a.length > 0 : !!a;
+        }).length;
+        document.getElementById('result-correct').textContent = answeredCount;
         document.getElementById('result-total-q').textContent = questionCount;
-        document.getElementById('result-pts').textContent = `${Object.keys(answers).filter(k => answers[k]).length}/${questionCount}`;
+        document.getElementById('result-pts').textContent = `${answeredCount}/${questionCount}`;
 
         const circle = document.getElementById('result-circle');
         if (circle) {
@@ -355,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     badge.style.display = 'none';
                 }
             }
-        } catch (e) { }
+        } catch (e) { console.error('[Student] Failed to check pending submissions:', e); }
     }
 
     // ─── QR Code Scanner ─────────────────────────────────────
@@ -557,6 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function startTorrentDownloadWithSwarm(magnetURI) {
+        // Persist magnet so user can resume after a page refresh
+        localStorage.setItem('offgrid-last-magnet', magnetURI);
         showDownloadProgress('Connecting to swarm…', true);
 
         const startedAt = Date.now();
@@ -575,7 +651,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const client = new WebTorrent();
+        // Persist client on window so it isn't GC'd — student continues seeding
+        if (!window._studentTorrentClient || window._studentTorrentClient.destroyed) {
+            window._studentTorrentClient = new WebTorrent();
+        }
+        const client = window._studentTorrentClient;
         let isCompleted = false;
 
         client.on('error', err => {
@@ -674,6 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const pkg = JSON.parse(text);
                         if (pkg.quiz) {
                             storeStudentQuizLocal(pkg.quiz);
+                            localStorage.removeItem('offgrid-last-magnet');
                             showToast(withModeBadge('WebTorrent', 'Quiz downloaded!'), 'success');
                             hideDownloadProgress();
                         }
@@ -810,5 +891,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('db-changed', loadQuizList);
 
     // ─── Init ────────────────────────────────────────────────
+    // Restore last magnet so interrupted downloads can be resumed
+    const _lastMagnet = localStorage.getItem('offgrid-last-magnet');
+    const _magnetInput = document.getElementById('magnet-input');
+    if (_lastMagnet && _magnetInput && !_magnetInput.value) {
+        _magnetInput.value = _lastMagnet;
+    }
+
     loadQuizList();
 });

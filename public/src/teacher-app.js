@@ -1,6 +1,12 @@
 // OffGridLink - Teacher App Logic
 // Quiz CRUD, UI rendering, auto-scoring, distribution controls
 
+function esc(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ─── Toast System ───────────────────────────────────────
@@ -18,6 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let questions = [];
     let questionCounter = 0;
     let editingQuizId = null;
+    
+    // ─── Caching & Performance ───────────────────────────────
+    let cachedQuizzes = [];
+    let cachedResults = [];
+    let quizCardsMap = new Map(); // quizId -> card element for incremental updates
+    let responseCardsMap = new Map(); // resultId -> card element for incremental updates
 
     // ─── Quiz Creator ────────────────────────────────────────
     const addMcqBtn = document.getElementById('add-mcq-btn');
@@ -34,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addQuestion(type) {
         questionCounter++;
         const qId = 'q' + questionCounter;
-        const q = { id: qId, type, text: '', options: type === 'mcq' ? ['', '', '', ''] : [], answer: '', points: 1 };
+        const q = { id: qId, type, text: '', options: type === 'mcq' ? ['', '', '', ''] : [], answer: '', answerType: 'single', points: 1 };
         questions.push(q);
         renderQuestion(q, questions.length - 1);
     }
@@ -46,24 +58,29 @@ document.addEventListener('DOMContentLoaded', () => {
         div.className = 'question-item';
         div.dataset.qid = q.id;
 
+        const _isMulti = q.answerType === 'multi';
+        const _multiAnswers = Array.isArray(q.answer) ? q.answer : [];
         const optionsHtml = q.type === 'mcq' ? `
             <div class="form-group" style="margin-top:10px;">
-                <label class="form-label">Answer Options & Correct Answer</label>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+                    <label class="form-label" style="margin:0;">Answer Options &amp; Correct Answer</label>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:12px;color:var(--text-muted);margin-right:2px;">Answer Type:</span>
+                        <button class="q-type-btn" data-type="single" style="padding:4px 12px;font-size:12px;border-radius:4px;border:1px solid var(--border);cursor:pointer;background:${!_isMulti ? 'var(--accent)' : 'var(--surface)'};color:${!_isMulti ? '#000' : 'var(--text)'};font-weight:${!_isMulti ? '600' : '400'};">Single</button>
+                        <button class="q-type-btn" data-type="multi" style="padding:4px 12px;font-size:12px;border-radius:4px;border:1px solid var(--border);cursor:pointer;background:${_isMulti ? 'var(--accent)' : 'var(--surface)'};color:${_isMulti ? '#000' : 'var(--text)'};font-weight:${_isMulti ? '600' : '400'};">Multiple</button>
+                    </div>
+                </div>
                 <div class="q-options">
                     ${['A', 'B', 'C', 'D'].map((letter, i) => `
-                        <div class="q-option-input-row">
-                            <span class="q-option-label">${letter}.</span>
-                            <input type="text" class="q-option" data-opt="${i}" placeholder="Option ${letter}" value="${q.options[i] || ''}">
+                        <div class="q-option-input-row" style="display:flex;align-items:center;gap:8px;">
+                            <input type="radio" class="q-radio-mark" name="correct-${q.id}" data-letter="${letter}" ${!_isMulti && q.answer === letter ? 'checked' : ''} title="Mark as correct" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;${_isMulti ? 'display:none' : ''}">
+                            <input type="checkbox" class="q-check-mark" data-letter="${letter}" ${_multiAnswers.includes(letter) ? 'checked' : ''} title="Mark as correct" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;${!_isMulti ? 'display:none' : ''}">
+                            <span class="q-option-label" style="min-width:22px;">${letter}.</span>
+                            <input type="text" class="q-option" data-opt="${i}" placeholder="Option ${letter}" value="${q.options[i] || ''}" style="flex:1;">
                         </div>
                     `).join('')}
                 </div>
-                <div style="margin-top:10px;">
-                    <label class="form-label">Correct Answer</label>
-                    <select class="q-answer-select">
-                        <option value="">– Select –</option>
-                        ${['A', 'B', 'C', 'D'].map(l => `<option value="${l}" ${q.answer === l ? 'selected' : ''}>${l}</option>`).join('')}
-                    </select>
-                </div>
+                <div class="q-answer-hint" style="margin-top:6px;font-size:11px;color:var(--text-muted);">${_isMulti ? '✓ Check all correct answers' : '● Select the one correct answer'}</div>
             </div>` : `
             <div class="form-group" style="margin-top:10px;">
                 <label class="form-label">Model Answer (for reference)</label>
@@ -72,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         div.innerHTML = `
             <div class="q-num">Question ${index + 1} – ${q.type === 'mcq' ? 'Multiple Choice' : 'Short Answer'}</div>
-            <button class="remove-q-btn" title="Remove">✕</button>
+            <button class="remove-q-btn" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             <div class="form-group">
                 <label class="form-label">Question Text *</label>
                 <textarea class="q-text" placeholder="Enter your question here..." rows="2">${q.text || ''}</textarea>
@@ -98,7 +115,49 @@ document.addEventListener('DOMContentLoaded', () => {
             div.querySelectorAll('.q-option').forEach((input, i) => {
                 input.addEventListener('input', e => { q.options[i] = e.target.value; });
             });
-            div.querySelector('.q-answer-select').addEventListener('change', e => { q.answer = e.target.value; });
+
+            div.querySelectorAll('.q-type-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.dataset.type;
+                    if (q.answerType === type) return;
+                    q.answerType = type;
+                    q.answer = type === 'multi' ? [] : '';
+                    const radios = div.querySelectorAll('.q-radio-mark');
+                    const checks = div.querySelectorAll('.q-check-mark');
+                    const hint = div.querySelector('.q-answer-hint');
+                    if (type === 'multi') {
+                        radios.forEach(r => { r.checked = false; r.style.display = 'none'; });
+                        checks.forEach(c => { c.checked = false; c.style.display = ''; });
+                        if (hint) hint.textContent = '✓ Check all correct answers';
+                    } else {
+                        checks.forEach(c => { c.checked = false; c.style.display = 'none'; });
+                        radios.forEach(r => { r.checked = false; r.style.display = ''; });
+                        if (hint) hint.textContent = '● Select the one correct answer';
+                    }
+                    div.querySelectorAll('.q-type-btn').forEach(b => {
+                        const active = b.dataset.type === type;
+                        b.style.background = active ? 'var(--accent)' : 'var(--surface)';
+                        b.style.color = active ? '#000' : 'var(--text)';
+                        b.style.fontWeight = active ? '600' : '400';
+                    });
+                });
+            });
+
+            div.querySelectorAll('.q-radio-mark').forEach(radio => {
+                radio.addEventListener('change', () => { q.answer = radio.dataset.letter; });
+            });
+
+            div.querySelectorAll('.q-check-mark').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (!Array.isArray(q.answer)) q.answer = [];
+                    const letter = cb.dataset.letter;
+                    if (cb.checked) {
+                        if (!q.answer.includes(letter)) q.answer.push(letter);
+                    } else {
+                        q.answer = q.answer.filter(l => l !== letter);
+                    }
+                });
+            });
         } else {
             div.querySelector('.q-answer-short').addEventListener('input', e => { q.answer = e.target.value; });
         }
@@ -132,7 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Validate questions
         for (const q of questions) {
             if (!q.text.trim()) { showToast('All questions must have text', 'error'); return; }
-            if (q.type === 'mcq' && !q.answer) { showToast('Select correct answer for all MCQ questions', 'error'); return; }
+            if (q.type === 'mcq') {
+                const noAnswer = q.answerType === 'multi'
+                    ? (!Array.isArray(q.answer) || q.answer.length === 0)
+                    : !q.answer;
+                if (noAnswer) { showToast('Select correct answer for all MCQ questions', 'error'); return; }
+            }
         }
 
         const totalPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
@@ -211,6 +275,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ─── My Quizzes Tab ─────────────────────────────────────
+    // Use PouchDB change listener instead of polling allDocs() on every event
+    function initQuizChangeListener() {
+        if (window.quizzesDB && typeof window.quizzesDB.changes === 'function') {
+            let isInitialized = false;
+            window.quizzesDB.changes({
+                since: 'now',
+                live: true,
+                include_docs: true
+            }).on('change', () => {
+                // Debounce to avoid excessive reloads
+                if (!isInitialized) {
+                    isInitialized = true;
+                    loadQuizzes(); // Initial load
+                } else {
+                    // Subsequent changes - reload with small debounce
+                    clearTimeout(window.quizChangeTimeout);
+                    window.quizChangeTimeout = setTimeout(loadQuizzes, 300);
+                }
+            }).on('error', (err) => console.error('[Teacher] Quiz change listener error:', err));
+        }
+    }
+
     async function loadQuizzes() {
         const list = document.getElementById('quiz-list');
         if (!list) return;
@@ -218,6 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const result = await window.quizzesDB.allDocs({ include_docs: true });
             const quizzes = result.rows.map(r => r.doc).filter(d => d.type === 'quiz');
+            cachedQuizzes = quizzes; // Cache for batched updates
 
             document.getElementById('quiz-count').textContent = quizzes.length;
             document.getElementById('stat-total').textContent = quizzes.length;
@@ -225,32 +312,101 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (quizzes.length === 0) {
                 list.innerHTML = `<div class="empty-state"><div class="icon">📚</div><p>No quizzes yet. Go to <strong>Create Quiz</strong> to get started!</p></div>`;
+                quizCardsMap.clear();
                 return;
             }
 
-            list.innerHTML = '';
-            quizzes.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).forEach(quiz => {
-                list.appendChild(createQuizCard(quiz));
+            // Incremental update: Only add/remove changed items
+            const currentIds = new Set(quizCardsMap.keys());
+            const newIds = new Set(quizzes.map(q => q._id));
+            const sortedQuizzes = quizzes.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+            
+            // Remove deleted quizzes
+            for (const id of currentIds) {
+                if (!newIds.has(id)) {
+                    const card = quizCardsMap.get(id);
+                    if (card && card.parentNode) card.remove();
+                    quizCardsMap.delete(id);
+                }
+            }
+
+            // Add new or update existing quizzes - use DocumentFragment for batch operations
+            const fragment = document.createDocumentFragment();
+            let addedAny = false;
+
+            sortedQuizzes.forEach(quiz => {
+                if (quizCardsMap.has(quiz._id)) {
+                    // Update existing card in place (could enhance with content comparison)
+                    const card = quizCardsMap.get(quiz._id);
+                    updateQuizCard(card, quiz); // New helper function
+                } else {
+                    // Add new card
+                    const card = createQuizCard(quiz);
+                    quizCardsMap.set(quiz._id, card);
+                    fragment.appendChild(card);
+                    addedAny = true;
+                }
             });
+
+            if (addedAny) {
+                list.appendChild(fragment);
+            }
+
+            // Maintain correct order
+            const actualOrder = Array.from(list.querySelectorAll('.quiz-card')).map(card => {
+                const quiz = cachedQuizzes.find(q => q._id === card.dataset.quizId);
+                return quiz ? quiz._id : null;
+            });
+            
+            const expectedIds = sortedQuizzes.map(q => q._id);
+            if (actualOrder.join() !== expectedIds.join()) {
+                // Re-insert in correct order
+                sortedQuizzes.forEach(quiz => {
+                    const card = quizCardsMap.get(quiz._id);
+                    if (card) list.appendChild(card); // Move to end in order
+                });
+            }
         } catch (err) {
             console.error('[Teacher] Error loading quizzes:', err);
         }
     }
 
+    // Helper to update quiz card UI without recreating it
+    function updateQuizCard(cardElement, quiz) {
+        const nameEl = cardElement.querySelector('.quiz-name');
+        const metaEl = cardElement.querySelector('.quiz-meta');
+        
+        if (nameEl) nameEl.textContent = esc(quiz.title);
+        if (metaEl) {
+            const pill = quiz.isPublished
+                ? '<span class="status-pill pill-published">● Published</span>'
+                : '<span class="status-pill pill-draft">○ Draft</span>';
+            metaEl.innerHTML = `
+                ${esc(quiz.subject || 'General')} ·
+                ${quiz.questions.length} questions ·
+                ${quiz.totalPoints} pts ·
+                ${quiz.timeLimit ? quiz.timeLimit + ' min' : 'No limit'}
+                ${pill}
+            `;
+        }
+        cardElement.dataset.quizId = quiz._id;
+    }
+
     function createQuizCard(quiz) {
         const div = document.createElement('div');
         div.className = 'quiz-card';
+        div.dataset.quizId = quiz._id; // Track for incremental updates
 
         const pill = quiz.isPublished
             ? '<span class="status-pill pill-published">● Published</span>'
             : '<span class="status-pill pill-draft">○ Draft</span>';
 
         div.innerHTML = `
-            <div class="quiz-icon">📝</div>
+            <div class="quiz-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
             <div class="quiz-info">
-                <div class="quiz-name">${quiz.title}</div>
+                <div class="quiz-name">${esc(quiz.title)}</div>
                 <div class="quiz-meta">
-                    ${quiz.subject || 'General'} ·
+                    ${esc(quiz.subject || 'General')} ·
                     ${quiz.questions.length} questions ·
                     ${quiz.totalPoints} pts ·
                     ${quiz.timeLimit ? quiz.timeLimit + ' min' : 'No limit'}
@@ -258,15 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
             <div class="quiz-actions">
-                <button class="btn btn-ghost btn-sm edit-btn">✏️ Edit</button>
-                <button class="btn btn-primary btn-sm dist-btn">📤 Distribute</button>
-                <button class="btn btn-danger btn-sm del-btn">🗑️</button>
+                <button class="btn btn-ghost btn-sm edit-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit</button>
+                <button class="btn btn-primary btn-sm dist-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Distribute</button>
+                <button class="btn btn-danger btn-sm del-btn" title="Delete quiz"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
             </div>`;
 
-        div.querySelector('.edit-btn').addEventListener('click', () => editQuiz(quiz));
-        div.querySelector('.dist-btn').addEventListener('click', () => distributeQuiz(quiz));
-        div.querySelector('.del-btn').addEventListener('click', () => deleteQuiz(quiz));
-
+        // Use event delegation - don't add listeners here
+        // Event delegation handler is on #quiz-list container
         return div;
     }
 
@@ -302,10 +456,33 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             await window.quizzesDB.remove(quiz._id, quiz._rev);
             showToast('Quiz deleted', 'info');
+            // Broadcast change event to trigger cache and UI updates
+            window.dispatchEvent(new CustomEvent('db-changed', { detail: { db: 'offgrid_quizzes' } }));
             loadQuizzes();
         } catch (err) {
             showToast('Delete failed: ' + err.message, 'error');
         }
+    }
+
+    // ─── Event Delegation for Quiz Cards (Issue #12) ─────────
+    const quizList = document.getElementById('quiz-list');
+    if (quizList) {
+        quizList.addEventListener('click', (e) => {
+            const card = e.target.closest('.quiz-card');
+            if (!card) return;
+            
+            const quizId = card.dataset.quizId;
+            const quiz = cachedQuizzes.find(q => q._id === quizId);
+            if (!quiz) return;
+
+            if (e.target.closest('.edit-btn')) {
+                editQuiz(quiz);
+            } else if (e.target.closest('.dist-btn')) {
+                distributeQuiz(quiz);
+            } else if (e.target.closest('.del-btn')) {
+                deleteQuiz(quiz);
+            }
+        });
     }
 
     // ─── Auto-Scoring ────────────────────────────────────────
@@ -320,20 +497,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 let correct = false;
 
                 if (q.type === 'mcq') {
-                    correct = studentAnswer === q.answer;
+                    if (q.answerType === 'multi') {
+                        const correctSet = (Array.isArray(q.answer) ? [...q.answer] : [q.answer]).sort();
+                        const studentSet = (Array.isArray(studentAnswer) ? [...studentAnswer] : (studentAnswer ? [studentAnswer] : [])).sort();
+                        correct = JSON.stringify(correctSet) === JSON.stringify(studentSet);
+                    } else {
+                        correct = studentAnswer === q.answer;
+                    }
                     if (correct) score += (q.points || 1);
                 } else {
                     // Short answer: flag for manual review, give 0 auto-score
                     correct = null; // null = needs review
                 }
 
+                const answerDisplay = Array.isArray(studentAnswer) ? studentAnswer.join(', ') : (studentAnswer || '(no answer)');
+                const correctDisplay = Array.isArray(q.answer) ? q.answer.join(', ') : (q.answer || '(short answer)');
                 breakdown.push({
                     qId: q.id,
                     qText: q.text,
                     type: q.type,
+                    answerType: q.answerType || 'single',
                     correct,
-                    studentAnswer: studentAnswer || '(no answer)',
-                    correctAnswer: q.answer,
+                    studentAnswer: answerDisplay,
+                    correctAnswer: correctDisplay,
                     points: q.points || 1
                 });
             });
@@ -360,7 +546,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If deterministic ID already exists, fetch _rev to update
                 const existing = await window.resultsDB.get(resultToSave._id);
                 resultToSave._rev = existing._rev;
-            } catch (e) { }
+            } catch (e) { /* new doc, no rev needed */ }
 
             await window.resultsDB.put(resultToSave);
             console.log('[Teacher] Result saved/updated:', resultToSave._id);
@@ -434,6 +620,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ─── Responses Tab ───────────────────────────────────────
+    // Use PouchDB change listener for results
+    function initResultChangeListener() {
+        if (window.resultsDB && typeof window.resultsDB.changes === 'function') {
+            let isInitialized = false;
+            window.resultsDB.changes({
+                since: 'now',
+                live: true,
+                include_docs: true
+            }).on('change', () => {
+                if (!isInitialized) {
+                    isInitialized = true;
+                    loadResponses();
+                } else {
+                    clearTimeout(window.resultChangeTimeout);
+                    window.resultChangeTimeout = setTimeout(loadResponses, 300);
+                }
+            }).on('error', (err) => console.error('[Teacher] Result change listener error:', err));
+        }
+    }
+
     async function loadResponses() {
         const list = document.getElementById('responses-list');
         if (!list) return;
@@ -452,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dedupedMap[key] = r;
             });
             let results = Object.values(dedupedMap);
+            cachedResults = results; // Cache for delegated events
 
             if (filterValue) results = results.filter(r => r.quizId === filterValue);
 
@@ -459,12 +666,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (results.length === 0) {
                 list.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>No responses received yet.</p></div>`;
+                responseCardsMap.clear();
                 return;
             }
 
-            list.innerHTML = '';
-            results.sort((a, b) => b.gradedAt.localeCompare(a.gradedAt)).forEach(r => {
-                list.appendChild(createResponseCard(r));
+            // Incremental update: Only update/add changed cards
+            const currentIds = new Set(responseCardsMap.keys());
+            const newIds = new Set(results.map(r => r._id));
+            const sortedResults = results.sort((a, b) => b.gradedAt.localeCompare(a.gradedAt));
+
+            // Remove deleted responses
+            for (const id of currentIds) {
+                if (!newIds.has(id)) {
+                    const card = responseCardsMap.get(id);
+                    if (card && card.parentNode) card.remove();
+                    responseCardsMap.delete(id);
+                }
+            }
+
+            // Add new or update existing responses
+            const fragment = document.createDocumentFragment();
+            let addedAny = false;
+
+            sortedResults.forEach(r => {
+                if (responseCardsMap.has(r._id)) {
+                    // Could update existing card here if needed
+                } else {
+                    const card = createResponseCard(r);
+                    responseCardsMap.set(r._id, card);
+                    fragment.appendChild(card);
+                    addedAny = true;
+                }
+            });
+
+            if (addedAny) {
+                list.appendChild(fragment);
+            }
+
+            // Maintain correct order
+            sortedResults.forEach(r => {
+                const card = responseCardsMap.get(r._id);
+                if (card && card.parentNode) list.appendChild(card);
             });
         } catch (err) {
             console.error('[Teacher] Error loading responses:', err);
@@ -474,6 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createResponseCard(result) {
         const div = document.createElement('div');
         div.className = 'response-card';
+        div.dataset.resultId = result._id; // Track for delegation and incremental updates
 
         const scoreClass = result.percentage >= 70 ? 'score-good' : result.percentage >= 40 ? 'score-mid' : 'score-low';
 
@@ -482,15 +725,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="display:flex;align-items:center;">
                     <div class="score-circle ${scoreClass}">${result.percentage}%</div>
                     <div>
-                        <div style="font-weight:600;font-size:15px;">${result.studentName}</div>
+                        <div style="font-weight:600;font-size:15px;">${esc(result.studentName)}</div>
                         <div style="font-size:12px;color:var(--text2);">
-                            ${result.quizTitle} · ${result.score}/${result.totalPoints} pts ·
+                            ${esc(result.quizTitle)} · ${result.score}/${result.totalPoints} pts ·
                             ${new Date(result.gradedAt).toLocaleString()}
                         </div>
                     </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <button class="btn btn-ghost btn-sm delete-response-btn" title="Delete Response" style="padding:4px 8px;font-size:14px;">🗑️</button>
+                    <button class="btn btn-ghost btn-sm delete-response-btn" title="Delete Response" style="padding:4px 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
                     <span style="color:var(--text3);font-size:18px;">▾</span>
                 </div>
             </div>
@@ -509,25 +752,46 @@ document.addEventListener('DOMContentLoaded', () => {
                         ${result.breakdown.map((b, i) => `
                             <tr>
                                 <td>${i + 1}</td>
-                                <td>${b.qText ? b.qText.substring(0, 50) + (b.qText.length > 50 ? '…' : '') : 'N/A'}</td>
-                                <td>${b.studentAnswer}</td>
-                                <td>${b.correctAnswer || '(short answer)'}</td>
+                                <td>${b.qText ? esc(b.qText.substring(0, 50)) + (b.qText.length > 50 ? '…' : '') : 'N/A'}</td>
+                                <td>${esc(b.studentAnswer)}</td>
+                                <td>${esc(b.correctAnswer || '(short answer)')}</td>
                                 <td>${b.correct === true ? '<span class="correct-ans">✓ Correct</span>'
                 : b.correct === false ? '<span class="wrong-ans">✗ Wrong</span>'
-                    : '<span style="color:var(--yellow)">📝 Review</span>'}</td>
+                    : '<span style="color:var(--yellow);display:inline-flex;align-items:center;gap:3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Review</span>'}</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>`;
 
-        const deleteBtn = div.querySelector('.delete-response-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // prevent toggling the accordion
-                if (confirm(`Are you sure you want to delete the response from ${result.studentName}?`)) {
+        // Don't attach inline event listeners - use event delegation instead
+        return div;
+    }
+
+    // ─── Event Delegation for Response Cards (Issue #12) ─────
+    const responseList = document.getElementById('responses-list');
+    if (responseList) {
+        responseList.addEventListener('click', async (e) => {
+            // Toggle accordion
+            const header = e.target.closest('.response-header');
+            if (header) {
+                const card = header.closest('.response-card');
+                if (card) {
+                    const body = card.querySelector('.response-body');
+                    if (body) body.classList.toggle('open');
+                }
+            }
+
+            // Delete response
+            if (e.target.closest('.delete-response-btn')) {
+                e.stopPropagation();
+                const card = e.target.closest('.response-card');
+                const resultId = card.dataset.resultId;
+                const result = cachedResults.find(r => r._id === resultId);
+                
+                if (result && confirm(`Are you sure you want to delete the response from ${result.studentName}?`)) {
                     try {
-                        const doc = await window.resultsDB.get(result._id);
+                        const doc = await window.resultsDB.get(resultId);
                         await window.resultsDB.remove(doc);
 
                         // Also delete the original submission so it doesn't get re-scored
@@ -542,6 +806,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
 
                         showToast('Response deleted successfully.', 'success');
+                        window.dispatchEvent(new CustomEvent('db-changed', { detail: { db: 'offgrid_results' } }));
                         loadResponses();
                         updateStatsCount();
                     } catch (err) {
@@ -549,15 +814,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         showToast('Failed to delete response.', 'error');
                     }
                 }
-            });
-        }
-
-        div.querySelector('.response-header').addEventListener('click', () => {
-            const body = div.querySelector('.response-body');
-            body.classList.toggle('open');
+            }
         });
-
-        return div;
     }
 
     async function updateDistributeSelect() {
@@ -567,8 +825,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await window.quizzesDB.allDocs({ include_docs: true });
             const quizzes = result.rows.map(r => r.doc).filter(d => d.type === 'quiz' && d.isPublished);
             select.innerHTML = '<option value="">– Select a published quiz –</option>' +
-                quizzes.map(q => `<option value="${q._id}">${q.title}</option>`).join('');
-        } catch (e) { }
+                quizzes.map(q => `<option value="${q._id}">${esc(q.title)}</option>`).join('');
+        } catch (e) { console.error('[Teacher] Failed to update distribute select:', e); }
     }
 
     async function updateResponseFilter() {
@@ -578,24 +836,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await window.quizzesDB.allDocs({ include_docs: true });
             const quizzes = result.rows.map(r => r.doc).filter(d => d.type === 'quiz');
             select.innerHTML = '<option value="">All Quizzes</option>' +
-                quizzes.map(q => `<option value="${q._id}">${q.title}</option>`).join('');
-        } catch (e) { }
+                quizzes.map(q => `<option value="${q._id}">${esc(q.title)}</option>`).join('');
+        } catch (e) { console.error('[Teacher] Failed to update response filter:', e); }
     }
 
     async function updateStatsCount() {
         try {
-            const result = await window.resultsDB.allDocs({ include_docs: true });
-            const count = result.rows.filter(r => r.doc.type === 'result').length;
+            // Use cached results count instead of calling allDocs()
+            const count = cachedResults.length;
             const el = document.getElementById('stat-responses');
             if (el) el.textContent = count;
-        } catch (e) { }
+        } catch (e) { console.error('[Teacher] Failed to update stats count:', e); }
     }
 
     // ─── CSV Export ──────────────────────────────────────────
     async function exportResponsesCSV() {
         try {
-            const result = await window.resultsDB.allDocs({ include_docs: true });
-            const results = result.rows.map(r => r.doc).filter(d => d.type === 'result');
+            // Use cached results instead of allDocs()
+            const results = cachedResults;
             if (results.length === 0) { showToast('No responses to export', 'info'); return; }
 
             const headers = ['Student Name', 'Quiz Title', 'Score', 'Total Points', 'Percentage', 'Graded At'];
@@ -629,8 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function exportResponsesPDF() {
         try {
             const { jsPDF } = window.jspdf;
-            const result = await window.resultsDB.allDocs({ include_docs: true });
-            const results = result.rows.map(r => r.doc).filter(d => d.type === 'result');
+            // Use cached results instead of allDocs()
+            const results = cachedResults;
             if (results.length === 0) { showToast('No responses to export', 'info'); return; }
 
             const doc = new jsPDF();
@@ -672,8 +930,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─── Excel Export ────────────────────────────────────────
     async function exportResponsesExcel() {
         try {
-            const result = await window.resultsDB.allDocs({ include_docs: true });
-            const results = result.rows.map(r => r.doc).filter(d => d.type === 'result');
+            // Use cached results instead of allDocs()
+            const results = cachedResults;
             if (results.length === 0) { showToast('No responses to export', 'info'); return; }
 
             const worksheetData = [
@@ -746,6 +1004,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (respFilter) respFilter.addEventListener('change', loadResponses);
 
     // ─── Init ────────────────────────────────────────────────
+    // Start listening to database changes instead of polling
+    initQuizChangeListener();
+    initResultChangeListener();
+    
     loadQuizzes();
     loadResponses();
     updateDistributeSelect();

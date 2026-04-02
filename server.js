@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { Server: TrackerServer } = require('bittorrent-tracker');
+const { PeerServer } = require('peer');
 
 const PORT = 3000;
 const TRACKER_PORT = 8000;
@@ -27,6 +28,12 @@ function getLocalIP() {
 
 const localIP = getLocalIP();
 const publishedQuizPackages = new Map();
+
+// ─── Local PeerJS Signaling Server (LAN P2P) ─────────────
+const peerServer = PeerServer({ port: 9000, path: '/offgrid', allow_discovery: true });
+peerServer.on('connection', client => console.log('[PeerJS Server] Client connected:', client.getId()));
+peerServer.on('disconnect', client => console.log('[PeerJS Server] Client disconnected:', client.getId()));
+console.log('[PeerJS Server] ✅ Signaling server running on port 9000 (path: /offgrid)');
 
 // ─── Local WebSocket Tracker (offline WebTorrent) ─────────
 const tracker = new TrackerServer({ http: false, udp: false, ws: true, stats: false });
