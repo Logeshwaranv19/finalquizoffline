@@ -1,4 +1,4 @@
-const CACHE_NAME = 'offgrid-v4';
+const CACHE_NAME = 'offgrid-v5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -13,6 +13,8 @@ const ASSETS_TO_CACHE = [
     './src/teacher-webtorrent.js',
     './src/student-app.js',
     './src/student-peerjs.js',
+    './src/teacher.css',
+    './src/student.css',
     './icons/icon.png'
 ];
 
@@ -23,6 +25,7 @@ self.addEventListener('install', (event) => {
             return cache.addAll(ASSETS_TO_CACHE);
         })
     );
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

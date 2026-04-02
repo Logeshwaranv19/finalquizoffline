@@ -1,6 +1,5 @@
 // OffGridLink - Database Layer
 // Three PouchDB databases for full quiz platform
-
 // Factory: creates a fresh PouchDB instance
 function createDBs() {
     window.quizzesDB = new PouchDB('offgrid_quizzes');

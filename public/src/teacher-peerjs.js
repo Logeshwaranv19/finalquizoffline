@@ -255,7 +255,7 @@
                 connectedPeers[peerId].send({ type: 'quiz_data', quiz: studentVersion });
                 const name = connectedNames[peerId] || peerId.substring(0, 8);
                 console.log('[PeerJS] Sent quiz to:', name);
-                showToast(`📤 Quiz sent to ${name}`, 'success');
+                showToast(`Quiz sent to ${name}`, 'success');
             }
         } catch (err) {
             console.error('[PeerJS] Error sending quiz:', err);
@@ -321,7 +321,7 @@
             }
 
             window.dispatchEvent(new Event('submission-received'));
-            showToast(`✅ Submission from ${studentName}`, 'success');
+            showToast(`Submission received from ${studentName}`, 'success');
         } catch (err) {
             console.error('[PeerJS] Error handling submission:', err);
         }
@@ -347,7 +347,7 @@
             connectedPeers[peerId].send({ type: 'quiz_data', quiz: studentVersion });
         });
 
-        showToast(`📤 Quiz sent to ${peers.length} student(s)`, 'success');
+        showToast(`Quiz sent to ${peers.length} student(s)`, 'success');
         console.log('[PeerJS] Quiz broadcasted to', peers.length, 'peers');
     };
 
@@ -402,13 +402,20 @@
         const peers = Object.keys(connectedPeers);
         const countEl = document.getElementById('connected-count');
         if (countEl) countEl.textContent = peers.length;
+        const sideCountEl = document.getElementById('connected-students-badge');
+        if (sideCountEl) sideCountEl.textContent = peers.length;
 
         if (peers.length === 0) {
-            container.innerHTML = '<span style="color:var(--text3);font-size:12px;">None connected</span>';
+            container.innerHTML = '<p style="font-size:13px;color:var(--text-muted);">No students connected yet</p>';
         } else {
             container.innerHTML = peers.map(p => {
                 const name = connectedNames[p] || p.substring(0, 12) + '…';
-                return `<span class="peer-chip">🟢 ${name}</span>`;
+                return `
+                <div class="student-row">
+                    <span class="status-dot online"></span>
+                    <span class="student-name">${name}</span>
+                    <span class="student-peer-id">${p}</span>
+                </div>`;
             }).join('');
         }
         updateP2PStatus(true, `P2P Online – ${peers.length} student(s)`);
@@ -416,11 +423,16 @@
 
     // ─── P2P Status Dot ─────────────────────────────────────
     function updateP2PStatus(online, text) {
+        const badge = document.getElementById('p2p-status-badge');
         const dot = document.getElementById('p2p-dot');
         const textEl = document.getElementById('p2p-text');
+        if (badge) {
+            badge.classList.toggle('badge-online', online);
+            badge.classList.toggle('badge-offline', !online);
+        }
         if (dot) {
-            dot.style.background = online ? 'var(--green)' : 'var(--text3)';
-            dot.style.boxShadow = online ? '0 0 6px var(--green)' : 'none';
+            dot.classList.toggle('online', online);
+            dot.classList.toggle('offline', !online);
         }
         if (textEl) textEl.textContent = text || (online ? 'P2P: Online' : 'P2P: Offline');
     }
@@ -490,7 +502,7 @@
                 if (!id || id === 'Initializing…') { showToast('Peer ID not ready yet', 'error'); return; }
                 navigator.clipboard.writeText(id).then(() => {
                     copyBtn.textContent = '✓ Copied!';
-                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+                    setTimeout(() => { copyBtn.textContent = '📋 Copy ID'; }, 2000);
                 }).catch(() => {
                     // Fallback for older browsers
                     const el = document.createElement('textarea');
@@ -500,7 +512,7 @@
                     document.execCommand('copy');
                     document.body.removeChild(el);
                     copyBtn.textContent = '✓ Copied!';
-                    setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+                    setTimeout(() => { copyBtn.textContent = '📋 Copy ID'; }, 2000);
                 });
             });
         }

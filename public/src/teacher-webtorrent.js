@@ -5,12 +5,107 @@
     const WEBTORRENT_PATH = './webtorrent.min.js';
     let client = null;
     let seedingTorrents = {}; // quizId -> torrent
+    let localTrackerUrl = null;
 
-    function initWebTorrent() {
+    async function getTrackerUrl() {
+        try {
+            const res = await fetch('/api/tracker-url');
+            const { url } = await res.json();
+            return url;
+        } catch (e) {
+            // Electron mode: /api/tracker-url not available, use known local IP
+            const ip = window.teacherLocalIP || 'localhost';
+            return `ws://${ip}:8000`;
+        }
+    }
+
+    function resolveTeacherIpHint() {
+        const input = document.getElementById('teacher-ip-display');
+        const inputIp = input ? input.value.trim() : '';
+        if (inputIp) return inputIp;
+        if (window.teacherLocalIP) return window.teacherLocalIP;
+        return 'localhost';
+    }
+
+    function normalizeTrackerUrl(url) {
+        if (!url) return `ws://${resolveTeacherIpHint()}:8000`;
+        if (url.includes('://localhost:') || url.includes('://127.0.0.1:')) {
+            return `ws://${resolveTeacherIpHint()}:8000`;
+        }
+        return url;
+    }
+
+    async function resolveTrackerUrlForSeed() {
+        try {
+            const trackerUrl = await getTrackerUrl();
+            return normalizeTrackerUrl(trackerUrl);
+        } catch (_) {
+            return `ws://${resolveTeacherIpHint()}:8000`;
+        }
+    }
+
+    async function publishFallbackPackage(quizId, quizPackage) {
+        const candidates = ['/api/publish-quiz-package'];
+        if (window.teacherLocalIP) {
+            candidates.push(`http://${window.teacherLocalIP}:3000/api/publish-quiz-package`);
+        }
+        candidates.push('http://localhost:3000/api/publish-quiz-package');
+
+        for (const url of candidates) {
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quizId, package: quizPackage })
+                });
+                if (!res.ok) {
+                    console.warn('[WebTorrent] Fallback publish non-OK:', url, res.status);
+                    continue;
+                }
+                const data = await res.json();
+                if (data && data.url) {
+                    console.log('[WebTorrent] HTTP fallback published at:', data.url);
+                    return data.url;
+                }
+            } catch (err) {
+                console.warn('[WebTorrent] Fallback publish failed:', url, err && err.message ? err.message : err);
+            }
+        }
+
+        return null;
+    }
+
+    function renderTransferPayload(labelText, payloadText) {
+        const torrentInfo = document.getElementById('torrent-info');
+        const transferLabel = document.getElementById('transfer-link-label');
+        const magnetDisplay = document.getElementById('magnet-display');
+        const qrDiv = document.getElementById('magnet-qr');
+
+        if (torrentInfo) torrentInfo.style.display = 'flex';
+        if (transferLabel) transferLabel.innerHTML = `${labelText}:`;
+        if (magnetDisplay) magnetDisplay.textContent = payloadText;
+
+        if (qrDiv && window.QRCode) {
+            qrDiv.innerHTML = '';
+            new QRCode(qrDiv, {
+                text: payloadText,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+    }
+
+    async function initWebTorrent() {
         if (!window.WebTorrent) {
             console.warn('[WebTorrent] Not available (global WebTorrent not found)');
             return;
         }
+        localTrackerUrl = await resolveTrackerUrlForSeed();
+        console.log('[WebTorrent] Using local tracker:', localTrackerUrl);
+
         client = new WebTorrent();
         console.log('[WebTorrent] Client initialized from global instance');
 
@@ -44,35 +139,52 @@
                 type: 'application/json'
             });
 
+            localTrackerUrl = await resolveTrackerUrlForSeed();
+            const seedOpts = localTrackerUrl ? { announce: [localTrackerUrl] } : {};
+            console.log('[WebTorrent] Seed options:', seedOpts);
+
             return new Promise((resolve, reject) => {
-                client.seed(file, torrent => {
+                client.seed(file, seedOpts, torrent => {
+                    const shareMagnet = torrent.magnetURI;
+
                     console.log('[WebTorrent] Seeding quiz:', quiz.title);
                     console.log('[WebTorrent] Magnet Link:', torrent.magnetURI);
+                    console.log('[WebTorrent] Share Magnet:', shareMagnet);
 
                     seedingTorrents[quizId] = torrent;
 
-                    // Display magnet link
-                    const torrentInfo = document.getElementById('torrent-info');
-                    const magnetDisplay = document.getElementById('magnet-display');
-                    const qrDiv = document.getElementById('magnet-qr');
+                    renderTransferPayload('WebTorrent Magnet Link', shareMagnet);
 
-                    if (torrentInfo) torrentInfo.style.display = 'block';
-                    if (magnetDisplay) magnetDisplay.textContent = torrent.magnetURI;
+                    showToast('Seeding via WebTorrent! Share the QR or magnet link.', 'success');
 
-                    // Generate QR Code
-                    if (qrDiv && window.QRCode) {
-                        qrDiv.innerHTML = '';
-                        new QRCode(qrDiv, {
-                            text: torrent.magnetURI,
-                            width: 256,
-                            height: 256,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
-                            correctLevel: QRCode.CorrectLevel.M
-                        });
-                    }
+                    torrent.on('wire', (wire) => {
+                        console.log('[WebTorrent] Wire connected:', wire && wire.remoteAddress ? wire.remoteAddress : 'unknown');
+                        showToast(`Student connected (${torrent.numPeers} peer${torrent.numPeers !== 1 ? 's' : ''})`, 'success');
+                    });
 
-                    showToast('🌊 Seeding via WebTorrent! Share the QR or magnet link.', 'success');
+                    torrent.on('noPeers', (announceType) => {
+                        console.warn('[WebTorrent] No peers via', announceType);
+                    });
+
+                    torrent.on('warning', (err) => {
+                        console.warn('[WebTorrent] Torrent warning:', err && err.message ? err.message : err);
+                    });
+
+                    torrent.on('trackerAnnounce', () => {
+                        console.log('[WebTorrent] Tracker announce succeeded for quiz:', quizId);
+                    });
+
+                    torrent.on('trackerWarning', (err) => {
+                        console.warn('[WebTorrent] Tracker warning for quiz:', quizId, err && err.message ? err.message : err);
+                    });
+
+                    torrent.on('trackerError', (err) => {
+                        console.error('[WebTorrent] Tracker error for quiz:', quizId, err && err.message ? err.message : err);
+                    });
+
+                    torrent.on('error', (err) => {
+                        console.error('[WebTorrent] Torrent error for quiz:', quizId, err && err.message ? err.message : err);
+                    });
 
                     // Update seeding status periodically
                     const interval = setInterval(() => {
@@ -83,12 +195,38 @@
                         console.log(`[WebTorrent] ${quiz.title} - Peers: ${torrent.numPeers}, Uploaded: ${formatBytes(torrent.uploaded)}`);
                     }, 5000);
 
-                    resolve(torrent.magnetURI);
+                    resolve(shareMagnet);
                 });
             });
         } catch (err) {
             console.error('[WebTorrent] Seed error:', err);
             showToast('WebTorrent seed failed: ' + err.message, 'error');
+            return null;
+        }
+    };
+
+    window.publishQuizPackageLocalLan = async function (quizId) {
+        try {
+            const quiz = await window.quizzesDB.get(quizId);
+            const quizPackage = {
+                version: '1.0',
+                quiz: window.teacherPeerModule.makeStudentVersion(quiz),
+                packagedAt: new Date().toISOString()
+            };
+
+            const directUrl = await publishFallbackPackage(quizId, quizPackage);
+            if (!directUrl) {
+                showToast('Local Wi-Fi transfer link could not be published', 'error');
+                return null;
+            }
+
+            renderTransferPayload('Direct LAN Link', directUrl);
+            console.log('[WebTorrent] Local Wi-Fi transfer link:', directUrl);
+            showToast('Local Wi-Fi transfer link ready. Share QR or link.', 'success');
+            return directUrl;
+        } catch (err) {
+            console.error('[WebTorrent] Local Wi-Fi publish error:', err);
+            showToast('Local Wi-Fi transfer failed: ' + err.message, 'error');
             return null;
         }
     };
@@ -121,7 +259,7 @@
 
     // Wire up seed button when DOM ready
     document.addEventListener('DOMContentLoaded', () => {
-        initWebTorrent();
+        initWebTorrent().catch(err => console.error('[WebTorrent] Init error:', err));
 
         const seedBtn = document.getElementById('seed-torrent-btn');
         if (seedBtn) {
@@ -129,9 +267,21 @@
                 const select = document.getElementById('distribute-quiz-select');
                 const quizId = select ? select.value : '';
                 if (!quizId) { showToast('Select a quiz first', 'error'); return; }
-                seedBtn.textContent = '⏳ Seeding…';
+                seedBtn.textContent = 'Seeding…';
                 await window.seedQuizPackage(quizId);
                 seedBtn.textContent = '🌊 Seed via WebTorrent';
+            });
+        }
+
+        const localLanBtn = document.getElementById('local-lan-transfer-btn');
+        if (localLanBtn) {
+            localLanBtn.addEventListener('click', async () => {
+                const select = document.getElementById('distribute-quiz-select');
+                const quizId = select ? select.value : '';
+                if (!quizId) { showToast('Select a quiz first', 'error'); return; }
+                localLanBtn.textContent = 'Preparing…';
+                await window.publishQuizPackageLocalLan(quizId);
+                localLanBtn.textContent = '📶 Local Wi-Fi Transfer';
             });
         }
     });

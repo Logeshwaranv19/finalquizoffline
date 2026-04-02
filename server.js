@@ -6,8 +6,10 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { Server: TrackerServer } = require('bittorrent-tracker');
 
-const PORT = 8080;
+const PORT = 3000;
+const TRACKER_PORT = 8000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
 // ─── Get real local network IP ────────────────────────────
@@ -24,6 +26,14 @@ function getLocalIP() {
 }
 
 const localIP = getLocalIP();
+const publishedQuizPackages = new Map();
+
+// ─── Local WebSocket Tracker (offline WebTorrent) ─────────
+const tracker = new TrackerServer({ http: false, udp: false, ws: true, stats: false });
+tracker.on('error', err => console.error('[Tracker] Error:', err.message));
+tracker.listen(TRACKER_PORT, '0.0.0.0', () => {
+    console.log(`[Tracker] ✅ WS tracker running on port ${TRACKER_PORT}`);
+});
 
 // ─── MIME types ───────────────────────────────────────────
 const MIME = {
@@ -44,12 +54,81 @@ const MIME = {
 const server = http.createServer((req, res) => {
     // CORS headers (for PeerJS + student pages)
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     res.setHeader('Cache-Control', 'no-cache');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
 
     // API: return local IP as JSON
     if (req.url === '/api/local-ip') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ip: localIP }));
+        return;
+    }
+
+    // API: return local tracker URL for offline WebTorrent
+    if (req.url === '/api/tracker-url') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ url: `ws://${localIP}:${TRACKER_PORT}` }));
+        return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/publish-quiz-package') {
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
+            if (body.length > 5 * 1024 * 1024) {
+                res.writeHead(413, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Payload too large' }));
+                req.destroy();
+            }
+        });
+
+        req.on('end', () => {
+            try {
+                const payload = JSON.parse(body || '{}');
+                const quizId = payload.quizId;
+                const quizPackage = payload.package;
+
+                if (!quizId || !quizPackage || !quizPackage.quiz) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ error: 'quizId and package.quiz are required' }));
+                    return;
+                }
+
+                publishedQuizPackages.set(quizId, {
+                    package: quizPackage,
+                    updatedAt: new Date().toISOString()
+                });
+
+                const url = `http://${localIP}:${PORT}/api/quiz-package/${encodeURIComponent(quizId)}`;
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, quizId, url }));
+                console.log('[HTTP Fallback] Published package for quiz:', quizId);
+            } catch (err) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Invalid JSON', details: err.message }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'GET' && req.url.startsWith('/api/quiz-package/')) {
+        const quizId = decodeURIComponent(req.url.slice('/api/quiz-package/'.length));
+        const record = publishedQuizPackages.get(quizId);
+        if (!record) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Quiz package not found', quizId }));
+            return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ quizId, package: record.package, updatedAt: record.updatedAt }));
         return;
     }
 

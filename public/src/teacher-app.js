@@ -294,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('[data-tab="connect"]').click();
         const select = document.getElementById('distribute-quiz-select');
         if (select) select.value = quiz._id;
-        showToast('Select "Send to All Students" to distribute', 'info');
+        showToast('Select "Local Wi-Fi Transfer" or "Seed via WebTorrent"', 'info');
     }
 
     async function deleteQuiz(quiz) {

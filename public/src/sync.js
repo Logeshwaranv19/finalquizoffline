@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const syncStatusEl = document.getElementById('sync-status');
     if (!syncStatusEl) return;
 
+    const LOCALHOST_IP = 'localhost';
+
     const syncIndicator = syncStatusEl.querySelector('span:first-child');
     const syncText = syncStatusEl.querySelector('span:last-child');
 
@@ -12,20 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentBaseUrl = '';
 
     // Load saved config
-    const defaultIP = localStorage.getItem('offgrid-couch-ip') || '';
+    const defaultIP = LOCALHOST_IP;
     const defaultPort = localStorage.getItem('offgrid-couch-port') || '5984';
-    const defaultUser = localStorage.getItem('offgrid-couch-user') || 'logesh';
-    const defaultPass = localStorage.getItem('offgrid-couch-pass') || 'logeshv@19';
+    const defaultUser = localStorage.getItem('offgrid-couch-user') || 'admin';
+    const defaultPass = localStorage.getItem('offgrid-couch-pass') || 'admin';
+
+    // Keep host fixed to localhost for auto-fetch/local sync mode.
+    localStorage.setItem('offgrid-couch-ip', LOCALHOST_IP);
 
     // Persist credential defaults on first run
     if (!localStorage.getItem('offgrid-couch-user')) localStorage.setItem('offgrid-couch-user', defaultUser);
     if (!localStorage.getItem('offgrid-couch-pass')) localStorage.setItem('offgrid-couch-pass', defaultPass);
 
-    // Start sync only if we have a saved IP
-    if (defaultIP) {
-        startAllSync(defaultIP, defaultPort, defaultUser, defaultPass);
-    } else {
-        updateSyncUI('offline');
+    function tryInitialSync() {
+        try {
+            startAllSync(defaultIP, defaultPort, defaultUser, defaultPass);
+        } catch (err) {
+            console.error('[Sync] Initial auto-sync failed:', err);
+            updateSyncUI('offline');
+        }
     }
 
     // ─── Settings UI ────────────────────────────────────────
@@ -40,10 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const testConnBtn = document.getElementById('test-conn-btn');
 
     function openSettings() {
-        settingsIpInput.value = localStorage.getItem('offgrid-couch-ip') || 'localhost';
+        settingsIpInput.value = localStorage.getItem('offgrid-couch-ip') || LOCALHOST_IP;
+        settingsIpInput.readOnly = false;
         settingsPortInput.value = localStorage.getItem('offgrid-couch-port') || '5984';
-        if (settingsUserInput) settingsUserInput.value = localStorage.getItem('offgrid-couch-user') || 'logesh';
-        if (settingsPassInput) settingsPassInput.value = localStorage.getItem('offgrid-couch-pass') || 'logeshv@19';
+        if (settingsUserInput) settingsUserInput.value = localStorage.getItem('offgrid-couch-user') || 'admin';
+        if (settingsPassInput) settingsPassInput.value = localStorage.getItem('offgrid-couch-pass') || 'admin';
         settingsModal.classList.remove('hidden');
     }
 
@@ -52,24 +60,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveSettings() {
-        const ip = settingsIpInput.value.trim();
+        const ip = settingsIpInput.value.trim() || LOCALHOST_IP;
         const port = settingsPortInput.value.trim() || '5984';
         const user = settingsUserInput ? settingsUserInput.value.trim() : 'admin';
         const pass = settingsPassInput ? settingsPassInput.value.trim() : '';
-
-        if (!ip) { alert('Please enter a valid IP address.'); return; }
 
         localStorage.setItem('offgrid-couch-ip', ip);
         localStorage.setItem('offgrid-couch-port', port);
         localStorage.setItem('offgrid-couch-user', user);
         localStorage.setItem('offgrid-couch-pass', pass);
 
-        startAllSync(ip, port, user, pass);
+        try {
+            startAllSync(ip, port, user, pass);
+        } catch (err) {
+            console.error('[Sync] Save & Connect failed:', err);
+            updateSyncUI('offline');
+            alert('Save completed, but connection failed. Please check CouchDB status and try again.');
+            return;
+        }
         closeSettings();
     }
 
+    const closeSettingsBtn2 = document.getElementById('close-settings-btn-2');
     if (settingsBtn) settingsBtn.addEventListener('click', openSettings);
     if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+    if (closeSettingsBtn2) closeSettingsBtn2.addEventListener('click', closeSettings);
     if (saveSettingsBtn) saveSettingsBtn.addEventListener('click', saveSettings);
     if (settingsModal) {
         settingsModal.addEventListener('click', e => {
@@ -84,16 +99,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Test connection button
     if (testConnBtn) {
         testConnBtn.addEventListener('click', async () => {
-            const ip = settingsIpInput.value.trim();
+            const ip = settingsIpInput.value.trim() || LOCALHOST_IP;
             const port = settingsPortInput.value.trim() || '5984';
             const user = settingsUserInput ? settingsUserInput.value.trim() : '';
             const pass = settingsPassInput ? settingsPassInput.value.trim() : '';
-            const url = buildBaseUrl(ip, port, user, pass);
+            const url = `http://${ip}:${port}`;
             testConnBtn.textContent = 'Testing...';
             try {
                 const resp = await fetch(url, { method: 'GET' });
-                if (resp.ok) {
-                    testConnBtn.textContent = '✅ Connected!';
+                // 200 = open, 401 = auth required — both mean CouchDB is reachable
+                if (resp.ok || resp.status === 401) {
+                    testConnBtn.textContent = '✓ Connected!';
                 } else {
                     testConnBtn.textContent = '❌ Failed (' + resp.status + ')';
                 }
@@ -113,6 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startAllSync(ip, port, user, pass) {
+        if (!window.quizzesDB || !window.submissionsDB || !window.resultsDB) {
+            throw new Error('Local databases are not initialized yet.');
+        }
+
         // Cancel existing sync handlers
         syncHandlers.forEach(h => { try { h.cancel(); } catch (e) { } });
         syncHandlers = [];
@@ -175,31 +195,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateSyncUI(state) {
         if (!syncIndicator || !syncText) return;
-        // Use direct style manipulation with CSS variable colours
         const syncDotEl = document.getElementById('sync-dot') || syncIndicator;
         const syncTextEl = document.getElementById('sync-text') || syncText;
+        const badgeEl = document.getElementById('sync-status');
+
+        // Reset dot classes
+        syncDotEl.className = 'status-dot';
+        if (badgeEl) {
+            badgeEl.classList.remove('badge-online', 'badge-offline', 'badge-syncing');
+        }
+
         switch (state) {
             case 'offline':
-                syncDotEl.style.background = 'var(--text3)';
-                syncDotEl.style.boxShadow = 'none';
+                syncDotEl.classList.add('offline');
                 syncTextEl.textContent = 'Cloud: Off';
+                if (badgeEl) badgeEl.classList.add('badge-offline');
                 break;
             case 'online':
-                syncDotEl.style.background = 'var(--green)';
-                syncDotEl.style.boxShadow = '0 0 6px var(--green)';
+                syncDotEl.classList.add('online');
                 syncTextEl.textContent = 'Synced ✓';
+                if (badgeEl) badgeEl.classList.add('badge-online');
                 break;
             case 'syncing':
             case 'active':
-                syncDotEl.style.background = 'var(--yellow)';
-                syncDotEl.style.boxShadow = '0 0 6px var(--yellow)';
+                syncDotEl.classList.add('syncing');
                 syncTextEl.textContent = 'Syncing…';
+                if (badgeEl) badgeEl.classList.add('badge-syncing');
                 break;
             case 'error':
-                syncDotEl.style.background = 'var(--red)';
-                syncDotEl.style.boxShadow = '0 0 6px var(--red)';
+                syncDotEl.classList.add('error');
                 syncTextEl.textContent = 'Sync Error';
+                if (badgeEl) badgeEl.classList.add('badge-offline');
                 break;
         }
     }
+
+    // Run auto-sync after all handlers are wired.
+    tryInitialSync();
 });

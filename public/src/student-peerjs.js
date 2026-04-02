@@ -141,7 +141,7 @@
         peer.on('error', err => {
             console.error('[Student PeerJS] Peer error:', err.type, err.message);
             updateP2PStatus(false, 'Signaling Error');
-            showToast('⚠️ Signaling failed. Check Teacher IP (' + teacherIP + ') and ensure teacher app is running.', 'error');
+            showToast('Signaling failed. Check Teacher IP (' + teacherIP + ') and ensure teacher app is running.', 'error');
             isConnecting = false;
             scheduleReconnect();
         });
@@ -153,7 +153,7 @@
         teacherConn.on('open', () => {
             console.log('[Student PeerJS] Connected to teacher!');
             updateP2PStatus(true, 'Connected to Teacher');
-            showToast('✅ Connected to teacher!', 'success');
+            showToast('Connected to teacher!', 'success');
 
             // Save credentials with consistent key names
             localStorage.setItem('student-name', studentName);
@@ -176,7 +176,7 @@
             console.log('[Student PeerJS] Teacher connection closed');
             teacherConn = null;
             updateP2PStatus(false, 'Teacher Disconnected');
-            showToast('📶 Teacher disconnected. Attempting to reconnect…', 'info');
+            showToast('Teacher disconnected. Attempting to reconnect…', 'info');
             scheduleReconnect();
         });
 
@@ -210,7 +210,7 @@
         switch (data.type) {
             case 'welcome':
                 console.log('[Student PeerJS] Welcome from teacher:', data);
-                showToast('👋 Welcome! Teacher is ready.', 'success');
+                showToast('Welcome! Teacher is ready.', 'success');
                 break;
 
             case 'quiz_data':
@@ -226,7 +226,7 @@
 
             case 'submission_ack':
                 console.log('[Student PeerJS] Submission acknowledged:', data.submissionId);
-                showToast('✅ Your answers were received by the teacher!', 'success');
+                showToast('Your answers were received by the teacher!', 'success');
                 try {
                     const sub = await window.submissionsDB.get(data.submissionId);
                     sub.syncStatus = 'received_by_teacher';
@@ -258,7 +258,7 @@
 
             await window.quizzesDB.put(doc);
             console.log('[Student] Quiz stored:', quiz.title);
-            showToast(`📚 Quiz received: "${quiz.title}"`, 'success');
+            showToast(`Quiz received: "${quiz.title}"`, 'success');
 
             // Switch to quiz tab automatically
             const quizzesNav = document.querySelector('[data-screen="quizzes"]');
@@ -277,7 +277,7 @@
             return;
         }
         teacherConn.send({ type: 'quiz_list_request' });
-        showToast('🔍 Fetching quiz list from teacher…', 'info');
+        showToast('Fetching quiz list from teacher…', 'info');
     };
 
     // ─── Request Specific Quiz from Teacher ──────────────────
@@ -287,7 +287,7 @@
             return;
         }
         teacherConn.send({ type: 'quiz_request', quizId });
-        showToast('📥 Downloading quiz from teacher…', 'info');
+        showToast('Downloading quiz from teacher…', 'info');
     };
 
     // ─── Submit Answers via P2P ──────────────────────────────
@@ -325,10 +325,10 @@
                 } catch (e) {}
             } catch (err) {
                 console.warn('[Student] P2P send failed, staying deferred:', err);
-                showToast('⏳ Saved locally. Will sync when teacher is available.', 'info');
+                showToast('Saved locally. Will sync when teacher is available.', 'info');
             }
         } else {
-            showToast('⏳ Saved! Will sync to teacher when connected.', 'info');
+            showToast('Saved! Will sync to teacher when connected.', 'info');
         }
 
         schedulePendingRetry();
@@ -354,7 +354,7 @@
                     const upd = await window.submissionsDB.get(sub._id);
                     await window.submissionsDB.put({ ...upd, syncStatus: 'sent' });
                     console.log('[Student] Deferred submission sent:', sub._id);
-                    showToast(`📤 Synced pending submission for "${sub.quizTitle}"`, 'success');
+                    showToast(`Synced pending submission for "${sub.quizTitle}"`, 'success');
                 } catch (e) {
                     console.warn('[Student] Retry failed for:', sub._id, e);
                 }
@@ -368,13 +368,23 @@
 
     // ─── P2P Status ──────────────────────────────────────────
     function updateP2PStatus(connected, text) {
+        const badge = document.getElementById('p2p-badge');
         const dot = document.getElementById('p2p-dot');
         const label = document.getElementById('p2p-label');
+        const banner = document.getElementById('reconnect-banner');
+
+        if (badge) {
+            badge.classList.toggle('badge-online', connected);
+            badge.classList.toggle('badge-offline', !connected);
+        }
         if (dot) {
-            dot.style.background = connected ? 'var(--green)' : 'var(--text3)';
-            dot.style.boxShadow = connected ? '0 0 5px var(--green)' : 'none';
+            dot.classList.toggle('online', connected);
+            dot.classList.toggle('offline', !connected);
         }
         if (label) label.textContent = text || (connected ? 'Connected' : 'P2P');
+        if (banner) {
+            banner.style.display = connected ? 'none' : 'flex';
+        }
     }
 
     function showToast(message, type = 'info') {

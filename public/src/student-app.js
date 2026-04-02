@@ -56,26 +56,25 @@ document.addEventListener('DOMContentLoaded', () => {
         div.className = 'quiz-card';
 
         const statusMap = {
-            'new': '<span class="status-pill pill-new">● New</span>',
-            'attempted': '<span class="status-pill pill-attempted">● In Progress</span>',
-            'submitted': isGraded ? '<span class="status-pill pill-submitted" style="background:var(--green);color:#fff">✓ Graded</span>' : '<span class="status-pill pill-submitted">✓ Submitted</span>'
+            'new': '<span class="status-new">● New</span>',
+            'attempted': '<span class="status-in-progress">● In Progress</span>',
+            'submitted': isGraded ? '<span class="status-graded">✓ Graded</span>' : '<span class="status-submitted">✓ Submitted</span>'
         };
         const pill = statusMap[quiz.status || 'new'] || statusMap['new'];
 
         div.innerHTML = `
-            <div class="quiz-card-icon">📝</div>
+            <div class="quiz-card-status">${pill}</div>
             <div class="quiz-card-title">${quiz.title}</div>
             <div class="quiz-card-meta">
-                ${quiz.subject || 'General'} ·
-                ${quiz.questions ? quiz.questions.length : 0} questions ·
-                ${quiz.totalPoints || 0} pts ·
-                ${quiz.timeLimit ? quiz.timeLimit + ' min' : 'No time limit'}
+                <span class="pill">${quiz.subject || 'General'}</span>
+                <span class="pill">${quiz.questions ? quiz.questions.length : 0} questions</span>
+                <span class="pill">${quiz.totalPoints || 0} pts</span>
+                <span class="pill">${quiz.timeLimit ? quiz.timeLimit + ' min' : 'No limit'}</span>
             </div>
-            <div class="quiz-card-footer">
-                ${pill}
+            <div style="margin-top:var(--space-4);">
                 ${quiz.status === 'submitted'
-                ? '<button class="btn btn-ghost btn-sm view-result-btn">View Result</button>'
-                : '<button class="btn btn-primary btn-sm start-btn">Start Quiz →</button>'}
+                ? '<button class="btn btn-ghost btn-full view-result-btn">View Result</button>'
+                : '<button class="btn btn-primary btn-full start-btn">Start Quiz →</button>'}
             </div>`;
 
         const startBtn = div.querySelector('.start-btn');
@@ -152,26 +151,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         questions.forEach((q, index) => {
             const div = document.createElement('div');
-            div.className = 'question-card';
+            div.className = 'question-block';
 
             let answerHtml = '';
             if (q.type === 'mcq') {
                 const letters = ['A', 'B', 'C', 'D'];
-                answerHtml = (q.options || []).map((opt, i) =>
+                answerHtml = `<div class="mcq-options">` + (q.options || []).map((opt, i) =>
                     `<button class="option-btn ${studentAnswers[q.id] === letters[i] ? 'selected' : ''}"
                         data-qid="${q.id}" data-val="${letters[i]}">
                         <span class="option-letter">${letters[i]}</span>
                         <span>${opt || '(empty option)'}</span>
                     </button>`
-                ).join('');
+                ).join('') + `</div>`;
             } else {
                 answerHtml = `<textarea class="short-answer-input" data-qid="${q.id}"
-                    placeholder="Type your answer here...">${studentAnswers[q.id] || ''}</textarea>`;
+                    placeholder="Type your answer here..." rows="3">${studentAnswers[q.id] || ''}</textarea>`;
             }
 
             div.innerHTML = `
-                <div class="question-num">Question ${index + 1} of ${questions.length} · ${q.points || 1} pt${q.points > 1 ? 's' : ''}</div>
-                <div class="question-text">${q.text}</div>
+                <div class="question-text">
+                    <span class="question-number-badge">${index + 1}</span>
+                    ${q.text}
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);margin-bottom:var(--space-3);">${q.points || 1} pt${(q.points || 1) > 1 ? 's' : ''}</div>
                 ${answerHtml}`;
 
             // MCQ option click
@@ -213,6 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const pct = total > 0 ? (answered / total) * 100 : 0;
         const bar = document.getElementById('progress-fill');
         if (bar) bar.style.width = pct + '%';
+        const label = document.getElementById('progress-label');
+        if (label) label.textContent = `${answered} of ${total} answered`;
     }
 
     function startTimer() {
@@ -286,15 +290,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const circle = document.getElementById('result-circle');
         if (circle) {
-            circle.className = 'result-circle result-good';
+            circle.className = 'score-circle result-circle result-good';
+            circle.style.setProperty('--pct', '100');
             circle.querySelector('.percentage').textContent = '✓';
         }
 
         const breakdown = document.getElementById('result-breakdown');
         if (breakdown) {
             breakdown.innerHTML = `
-                <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:12px;padding:14px;text-align:center;">
-                    <div style="font-size:13px;color:var(--text2);">📊 Full results will be available after the teacher grades your submission.</div>
+                <div style="background:var(--info-muted);border:1px solid rgba(59,130,246,0.25);border-radius:var(--radius-md);padding:var(--space-4);text-align:center;">
+                    <div style="font-size:13px;color:var(--text-secondary);">Full results will be available after the teacher grades your submission.</div>
                 </div>`;
         }
 
@@ -326,7 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const circle = document.getElementById('result-circle');
             if (circle) {
                 const cls = myResult.percentage >= 70 ? 'result-good' : myResult.percentage >= 40 ? 'result-mid' : 'result-low';
-                circle.className = `result-circle ${cls}`;
+                circle.className = `score-circle result-circle ${cls}`;
+                circle.style.setProperty('--pct', myResult.percentage);
                 circle.querySelector('.percentage').textContent = myResult.percentage + '%';
             }
 
@@ -344,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (badge) {
                 if (pending > 0) {
                     badge.style.display = 'flex';
-                    badge.textContent = `⏳ ${pending} pending submission(s) — will auto-sync when teacher connects`;
+                    badge.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${pending} pending submission(s) — will auto-sync when teacher connects`;
                 } else {
                     badge.style.display = 'none';
                 }
@@ -391,11 +397,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         stopScanner();
                         
                         // Automatically start download
-                        downloadQuizFromTorrent(trimmedScan);
+                        downloadQuizFromLink(trimmedScan);
                         return;
                     }
 
-                    // Option B: Teacher Connection Info
+                    // Option B: Direct LAN Link
+                    if (/^https?:\/\//i.test(trimmedScan)) {
+                        const magnetInput = document.getElementById('magnet-input');
+                        if (magnetInput) magnetInput.value = trimmedScan;
+
+                        showToast('Local Wi-Fi Link Detected!', 'success');
+                        stopScanner();
+
+                        downloadQuizFromLink(trimmedScan);
+                        return;
+                    }
+
+                    // Option C: Teacher Connection Info
                     const lines = trimmedScan.split('\n');
                     if (lines.length > 0 && lines[0].trim() === 'OffGridLink') {
                         lines.forEach(line => {
@@ -408,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         });
                         
-                        showToast('✅ Teacher Info Scanned!', 'success');
+                        showToast('Teacher Info Scanned!', 'success');
                         stopScanner();
                         
                         // Set default name if empty
@@ -426,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }, 500);
                         }
                     } else {
-                        showToast('⚠️ Unknown QR Code format.', 'error');
+                        showToast('Unknown QR Code format.', 'error');
                         stopScanner();
                     }
                 },
@@ -454,14 +472,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ─── Download Progress UI ────────────────────────────────
+    const _dpWrap   = document.getElementById('download-progress-wrap');
+    const _dpFill   = document.getElementById('download-progress-fill');
+    const _dpStatus = document.getElementById('download-progress-status');
+    const _dpLabel  = document.getElementById('download-progress-label');
+    const _dpPeers  = document.getElementById('download-progress-peers');
+
+    function showDownloadProgress(statusText, indeterminate = false) {
+        if (!_dpWrap) return;
+        _dpWrap.style.display = 'block';
+        _dpStatus.textContent = statusText || '';
+        _dpLabel.textContent  = indeterminate ? '' : '0%';
+        _dpPeers.textContent  = '';
+        _dpFill.style.width   = indeterminate ? '40%' : '0%';
+        _dpFill.classList.toggle('indeterminate', indeterminate);
+    }
+
+    function updateDownloadProgress(percent, statusText, peersText) {
+        if (!_dpWrap) return;
+        _dpFill.classList.remove('indeterminate');
+        _dpFill.style.width  = Math.min(100, Math.max(0, percent)).toFixed(1) + '%';
+        _dpLabel.textContent = Math.min(100, Math.round(percent)) + '%';
+        if (statusText !== undefined) _dpStatus.textContent = statusText;
+        if (peersText  !== undefined) _dpPeers.textContent  = peersText;
+    }
+
+    function hideDownloadProgress() {
+        if (!_dpWrap) return;
+        updateDownloadProgress(100, 'Done');
+        setTimeout(() => {
+            _dpWrap.style.display = 'none';
+            _dpFill.style.width   = '0%';
+            _dpFill.classList.remove('indeterminate');
+            _dpStatus.textContent = '';
+            _dpLabel.textContent  = '';
+            _dpPeers.textContent  = '';
+        }, 1200);
+    }
+
     // ─── WebTorrent download ─────────────────────────────────
     const joinTorrentBtn = document.getElementById('join-torrent-btn');
     if (joinTorrentBtn) {
         joinTorrentBtn.addEventListener('click', () => {
-            const magnet = document.getElementById('magnet-input').value.trim();
-            if (!magnet) { showToast('Please enter a magnet link', 'error'); return; }
-            downloadQuizFromTorrent(magnet);
+            const transferLink = document.getElementById('magnet-input').value.trim();
+            if (!transferLink) { showToast('Please enter a transfer link', 'error'); return; }
+            downloadQuizFromLink(transferLink);
         });
+    }
+
+    function downloadQuizFromLink(transferLink) {
+        if (!transferLink) {
+            showToast('Transfer link is empty', 'error');
+            return;
+        }
+
+        if (transferLink.startsWith('magnet:?')) {
+            downloadQuizFromTorrent(transferLink);
+            return;
+        }
+
+        if (/^https?:\/\//i.test(transferLink)) {
+            downloadQuizFromDirectLan(transferLink);
+            return;
+        }
+
+        showToast('Unsupported transfer link format', 'error');
+    }
+
+    function withModeBadge(mode, message) {
+        return '[' + mode + '] ' + message;
     }
 
     function downloadQuizFromTorrent(magnetURI) {
@@ -473,26 +553,225 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startTorrentDownload(magnetURI) {
-        showToast('⬇️ Connecting to torrent swarm…', 'info');
+        startTorrentDownloadWithSwarm(magnetURI);
+    }
+
+    async function startTorrentDownloadWithSwarm(magnetURI) {
+        showDownloadProgress('Connecting to swarm…', true);
+
+        const startedAt = Date.now();
+        const magnetParams = parseMagnetParams(magnetURI);
+        const trackerList = magnetParams.getAll('tr');
+        const connectTimeoutMs = 30000;
+        console.log('[Torrent] Starting download');
+        console.log('[Torrent] Magnet:', magnetURI);
+        console.log('[Torrent] Trackers:', trackerList);
+
+        const probe = await probeTrackerReachability(magnetURI);
+        if (probe && probe.ok === false) {
+            console.warn('[Torrent] Tracker unreachable during probe:', probe.url, probe.error || 'unknown');
+            showToast(withModeBadge('WebTorrent', 'Tracker unreachable (' + probe.url + '). Check Teacher IP/Firewall for port 8000.'), 'error');
+            hideDownloadProgress();
+            return;
+        }
+
         const client = new WebTorrent();
-        client.add(magnetURI, torrent => {
+        let isCompleted = false;
+
+        client.on('error', err => {
+            console.error('[Torrent] Client error:', err);
+            showToast(withModeBadge('WebTorrent', 'Torrent error: ' + err.message), 'error');
+            hideDownloadProgress();
+        });
+
+        client.on('warning', err => {
+            console.warn('[Torrent] Client warning:', err && err.message ? err.message : err);
+        });
+
+        const torrent = client.add(magnetURI);
+
+        console.log('[Torrent] Added torrent from magnet, waiting for metadata and peers...');
+
+        torrent.on('infoHash', () => {
+            console.log('[Torrent] infoHash:', torrent.infoHash);
+        });
+
+        torrent.on('metadata', () => {
+            console.log('[Torrent] Metadata received. Name:', torrent.name, 'Files:', torrent.files ? torrent.files.length : 0);
+            updateDownloadProgress(0, 'Metadata received, starting…', '');
+        });
+
+        torrent.on('ready', () => {
+            console.log('[Torrent] Ready. Announce list:', torrent.announce);
+        });
+
+        torrent.on('trackerAnnounce', () => {
+            console.log('[Torrent] Tracker announce succeeded');
+        });
+
+        torrent.on('trackerWarning', (err) => {
+            console.warn('[Torrent] Tracker warning:', err && err.message ? err.message : err);
+        });
+
+        torrent.on('trackerError', (err) => {
+            console.error('[Torrent] Tracker error:', err && err.message ? err.message : err);
+        });
+
+        torrent.on('wire', () => {
+            console.log('[Torrent] Wire connected. Peers now:', torrent.numPeers);
+            updateDownloadProgress(
+                torrent.progress * 100,
+                'Downloading…',
+                torrent.numPeers + ' peer' + (torrent.numPeers !== 1 ? 's' : '') + ' connected'
+            );
+        });
+
+        torrent.on('download', () => {
+            const pct = torrent.progress * 100;
+            const speed = torrent.downloadSpeed;
+            const speedStr = speed > 0 ? ' · ' + formatBytes(speed) + '/s' : '';
+            updateDownloadProgress(
+                pct,
+                'Downloading…',
+                torrent.numPeers + ' peer' + (torrent.numPeers !== 1 ? 's' : '') + speedStr
+            );
+        });
+
+        // Timeout: if no peers are found, keep this path strictly WebTorrent.
+        const timeout = setTimeout(() => {
+            if (!isCompleted && torrent.numPeers === 0) {
+                console.warn('[Torrent] Timeout waiting for peers. Announce:', torrent.announce);
+                showToast(withModeBadge('WebTorrent', 'No peers found. Re-seed a fresh magnet and verify tracker port 8000 is reachable.'), 'error');
+                hideDownloadProgress();
+            }
+        }, connectTimeoutMs);
+
+        torrent.on('error', err => {
+            clearTimeout(timeout);
+            console.error('[Torrent] Torrent error:', err);
+            showToast(withModeBadge('WebTorrent', 'Torrent error: ' + (err && err.message ? err.message : 'Unknown error')), 'error');
+            hideDownloadProgress();
+        });
+
+        torrent.on('noPeers', announceType => {
+            console.warn('[Torrent] No peers found via', announceType);
+        });
+
+        torrent.on('done', () => {
+            isCompleted = true;
+            clearTimeout(timeout);
+            console.log('[Torrent] Download completed in', Date.now() - startedAt, 'ms');
+            updateDownloadProgress(100, 'Done!', '');
             torrent.files.forEach(file => {
                 file.getBuffer((err, buffer) => {
-                    if (err) { showToast('Torrent download error: ' + err.message, 'error'); return; }
+                    if (err) {
+                        showToast('Torrent download error: ' + err.message, 'error');
+                        hideDownloadProgress();
+                        return;
+                    }
                     try {
                         const text = new TextDecoder().decode(buffer);
                         const pkg = JSON.parse(text);
                         if (pkg.quiz) {
                             storeStudentQuizLocal(pkg.quiz);
-                            showToast('📚 Quiz downloaded from torrent!', 'success');
+                            showToast(withModeBadge('WebTorrent', 'Quiz downloaded!'), 'success');
+                            hideDownloadProgress();
                         }
                     } catch (e) {
                         console.error('[Torrent] Parse error:', e);
                         showToast('Invalid quiz file', 'error');
+                        hideDownloadProgress();
                     }
                 });
             });
         });
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function parseMagnetParams(magnetURI) {
+        if (!magnetURI || !magnetURI.startsWith('magnet:?')) return new URLSearchParams();
+        return new URLSearchParams(magnetURI.slice('magnet:?'.length));
+    }
+
+    function getWsTrackersFromMagnet(magnetURI) {
+        const params = parseMagnetParams(magnetURI);
+        return params.getAll('tr').filter(url => /^wss?:\/\//i.test(url));
+    }
+
+    async function probeTrackerReachability(magnetURI, timeoutMs = 4000) {
+        const trackers = getWsTrackersFromMagnet(magnetURI);
+        if (!trackers.length) {
+            return null;
+        }
+
+        const url = trackers[0];
+
+        return await new Promise((resolve) => {
+            let settled = false;
+            let ws = null;
+
+            const finish = (result) => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timer);
+                try {
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.close();
+                    }
+                } catch (_) {
+                    // Ignore close errors.
+                }
+                resolve(result);
+            };
+
+            const timer = setTimeout(() => {
+                finish({ ok: false, url, error: 'timeout' });
+            }, timeoutMs);
+
+            try {
+                ws = new WebSocket(url);
+                ws.onopen = () => finish({ ok: true, url });
+                ws.onerror = () => finish({ ok: false, url, error: 'socket-error' });
+            } catch (err) {
+                finish({ ok: false, url, error: err && err.message ? err.message : 'socket-init-failed' });
+            }
+        });
+    }
+
+    async function fetchJsonWithTimeout(url, timeoutMs) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    async function downloadQuizFromDirectLan(url) {
+        showDownloadProgress('Fetching from teacher…', true);
+        try {
+            const payload = await fetchJsonWithTimeout(url, 12000);
+            const pkg = payload && payload.package ? payload.package : payload;
+            if (!pkg || !pkg.quiz) {
+                throw new Error('Invalid quiz package');
+            }
+            updateDownloadProgress(100, 'Done!', '');
+            await storeStudentQuizLocal(pkg.quiz);
+            showToast(withModeBadge('Local Wi-Fi', 'Quiz downloaded!'), 'success');
+            hideDownloadProgress();
+        } catch (err) {
+            console.error('[LAN] Direct transfer error:', err);
+            showToast(withModeBadge('Local Wi-Fi', 'Direct LAN transfer failed: ' + (err && err.message ? err.message : err)), 'error');
+            hideDownloadProgress();
+        }
     }
 
     async function storeStudentQuizLocal(quiz) {
