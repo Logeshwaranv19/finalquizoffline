@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0D0D0F">
+    <meta name="theme-color" content="#EBF5FB">
     <title>OffGridLink – Student</title>
     <link rel="manifest" href="manifest.json">
     <meta http-equiv="Content-Security-Policy"
@@ -21,10 +21,13 @@
                 theme: {
                     extend: {
                         colors: {
-                            accent: '#F59E0B',
-                            bg: { DEFAULT: '#0D0D0F', surface: '#141416', surface2: '#1C1C20', surface3: '#242428' },
-                            border: { DEFAULT: '#2A2A30', focus: '#F59E0B' },
-                            tx: { primary: '#F4F4F5', secondary: '#A1A1AA', muted: '#52525B' },
+                            accent: '#5DADE2',
+                            'vibrant-orange': '#E67E22',
+                            'deep-navy': '#1B4F72',
+                            'steel-blue': '#5499C7',
+                            bg: { DEFAULT: '#EBF5FB', surface: '#FFFFFF', surface2: '#F0F7FB', surface3: '#E1EBF2' },
+                            border: { DEFAULT: '#D6EAF8', focus: '#5DADE2' },
+                            tx: { primary: '#1B4F72', secondary: '#5499C7', muted: '#7FB3D5' },
                         },
                         fontFamily: {
                             display: ['Sora', 'sans-serif'],
@@ -115,7 +118,7 @@
                         <input type="text" id="teacher-peer-id-input" placeholder="e.g. 482-391" maxlength="20" inputmode="numeric">
                     </div>
                 </div>
-                <button class="btn btn-primary btn-full btn-lg" id="connect-btn">
+                <button class="btn btn-connect btn-full btn-lg" id="connect-btn">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg> Connect to Teacher
                 </button>
                 <button class="btn btn-ghost btn-full" id="browse-quizzes-btn" style="margin-top:var(--space-2);">

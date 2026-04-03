@@ -3,40 +3,44 @@
 
 /* ─── CSS Custom Properties ─── */
 :root {
-  /* Brand accent */
-  --accent:              #F59E0B;
-  --accent-hover:        #D97706;
-  --accent-muted:        rgba(245, 158, 11, 0.12);
-  --accent-border:       rgba(245, 158, 11, 0.3);
-  --accent-text:         #000000;
+  /* Brand accent - Sky Blue */
+  --accent:              #5DADE2;
+  --accent-hover:        #3498DB;
+  --accent-muted:        rgba(93, 173, 226, 0.1);
+  --accent-border:       rgba(93, 173, 226, 0.2);
+  --accent-text:         #FFFFFF;
 
-  /* Page backgrounds */
-  --bg:                  #0D0D0F;
-  --surface:             #141416;
-  --surface-2:           #1C1C20;
-  --surface-3:           #242428;
+  /* Connect Accent - Vibrant Orange */
+  --accent-connect:      #E67E22;
+  --accent-connect-hover: #D35400;
+
+  /* Page backgrounds - Light Blue Gradient */
+  --bg:                  linear-gradient(135deg, #EBF5FB 0%, #D6EAF8 100%);
+  --surface:             #FFFFFF;
+  --surface-2:           #F8FDFF;
+  --surface-3:           #EBF5FB;
 
   /* Borders */
-  --border:              #2A2A30;
-  --border-focus:        #F59E0B;
-  --border-subtle:       #1E1E24;
+  --border:              #D6EAF8;
+  --border-focus:        #5DADE2;
+  --border-subtle:       #EBF5FB;
 
   /* Text */
-  --text-primary:        #F4F4F5;
-  --text-secondary:      #A1A1AA;
-  --text-muted:          #52525B;
+  --text-primary:        #1B4F72;
+  --text-secondary:      #5499C7;
+  --text-muted:          #7FB3D5;
 
   /* Semantic colors */
-  --success:             #10B981;
-  --success-muted:       rgba(16, 185, 129, 0.12);
-  --success-border:      rgba(16, 185, 129, 0.25);
-  --warning:             #F59E0B;
-  --warning-muted:       rgba(245, 158, 11, 0.12);
-  --error:               #EF4444;
-  --error-muted:         rgba(239, 68, 68, 0.12);
-  --error-border:        rgba(239, 68, 68, 0.25);
-  --info:                #3B82F6;
-  --info-muted:          rgba(59, 130, 246, 0.12);
+  --success:             #52BE80;
+  --success-muted:       rgba(82, 190, 128, 0.1);
+  --success-border:      rgba(82, 190, 128, 0.2);
+  --warning:             #F5B041;
+  --warning-muted:       rgba(245, 176, 65, 0.1);
+  --error:               #E74C3C;
+  --error-muted:         rgba(231, 76, 60, 0.1);
+  --error-border:        rgba(231, 76, 60, 0.2);
+  --info:                #5DADE2;
+  --info-muted:          rgba(93, 173, 226, 0.1);
 
   /* Spacing */
   --space-1: 4px;   --space-2: 8px;   --space-3: 12px;
@@ -119,7 +123,8 @@ body {
 }
 
 .card:hover {
-  border-color: #3A3A42;
+  border-color: var(--accent);
+  background: rgba(93, 173, 226, 0.05);
 }
 
 /* ─── Buttons ─── */
@@ -157,9 +162,18 @@ body {
 }
 
 .btn-ghost {
-  background: transparent;
+  background: #FFFFFF;
   border: 1px solid var(--border);
   color: var(--text-secondary);
+}
+
+.btn-connect {
+  background: var(--accent-connect);
+  color: #FFFFFF;
+}
+
+.btn-connect:hover {
+  background: var(--accent-connect-hover);
 }
 
 .btn-ghost:hover {
@@ -1149,7 +1163,7 @@ main,
   bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  background: var(--surface-2);
+  background: #FFFFFF;
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
   padding: 6px;
