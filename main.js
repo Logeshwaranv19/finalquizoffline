@@ -1,7 +1,7 @@
 // OffGridLink – Electron Main Process
 // Starts local PeerJS server + teacher UI window
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const http = require('http');
 const { PeerServer } = require('peer');
@@ -183,8 +183,10 @@ function createWindow() {
             spellcheck: true
         },
         icon: path.join(__dirname, 'public/icons/icon.png'),
-        title: 'OffGridLink – Teacher Dashboard'
+        title: 'OffGrid Quiz – Teacher Dashboard'
     });
+
+    createMenu();
 
     mainWindow.loadFile('public/teacher.html');
 
@@ -217,6 +219,44 @@ app.whenReady().then(async () => {
         }
     });
 });
+
+// ─── Menu Configuration ───────────────────────────────────
+function createMenu() {
+    const template = [
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { role: 'toggleDevTools' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' }
+            ]
+        },
+        {
+            role: 'windowMenu'
+        },
+        {
+            role: 'help',
+            submenu: [
+                {
+                    label: 'Learn More',
+                    click: async () => {
+                        const { shell } = require('electron');
+                        await shell.openExternal('https://github.com/Logeshwaranv19/finalquizoffline');
+                    }
+                }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+}
 
 // ─── IPC Handlers ─────────────────────────────────────────
 ipcMain.on('send-notification', (event, { title, body }) => {

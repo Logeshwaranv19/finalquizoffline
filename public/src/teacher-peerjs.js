@@ -106,7 +106,8 @@
                 host: 'localhost',
                 port: 9000,
                 path: '/offgrid',
-                debug: 1
+                debug: 1,
+                config: { iceServers: [] }
             };
 
             try {
@@ -156,9 +157,9 @@
     function fallbackToPublicBroker(stableId) {
         if (peer && !peer.destroyed) { peer.destroy(); }
         try {
-            peer = new Peer(stableId, { debug: 1 });
+            peer = new Peer(stableId, { debug: 1, config: { iceServers: [] } });
         } catch (e) {
-            peer = new Peer(undefined, { debug: 1 });
+            peer = new Peer(undefined, { debug: 1, config: { iceServers: [] } });
         }
 
         peer.on('open', id => {
@@ -314,8 +315,9 @@
     async function handleSubmission(peerId, data) {
         try {
             const studentName = data.studentName || connectedNames[peerId] || 'Anonymous';
+            const submissionId = `sub_${data.quizId}_${peerId.replace(/[^a-z0-9]/gi, '').substr(0, 10)}`;
             const submission = {
-                _id: `sub_${data.quizId}_${peerId.replace(/[^a-z0-9]/gi, '').substr(0, 10)}`,
+                _id: submissionId,
                 type: 'submission',
                 quizId: data.quizId,
                 quizTitle: data.quizTitle || '',
@@ -326,25 +328,29 @@
                 syncStatus: 'received'
             };
 
-            await window.submissionsDB.put(submission);
-            console.log('[PeerJS] Submission saved:', submission._id);
-
-            // Auto-score immediately
-            if (typeof window.autoScoreSubmission === 'function') {
-                await window.autoScoreSubmission(submission);
-            }
-
-            // Acknowledge
+            // 1. Immediate ACK to student (Fast response)
             if (connectedPeers[peerId]) {
                 connectedPeers[peerId].send({
                     type: 'submission_ack',
-                    submissionId: submission._id,
+                    submissionId: submissionId,
                     status: 'received'
                 });
             }
 
+            // 2. Immediate UI update (Teacher sees it immediately)
             window.dispatchEvent(new Event('submission-received'));
             showToast(`Submission received from ${studentName}`, 'success');
+
+            // 3. Save to DB (Awaited but ACK already sent)
+            await window.submissionsDB.put(submission);
+            console.log('[PeerJS] Submission saved:', submission._id);
+
+            // 4. Auto-score in background
+            if (typeof window.autoScoreSubmission === 'function') {
+                window.autoScoreSubmission(submission).catch(err => {
+                    console.error('[PeerJS] Background scoring error:', err);
+                });
+            }
         } catch (err) {
             console.error('[PeerJS] Error handling submission:', err);
         }

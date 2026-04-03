@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">OffGridLink</string>
-    <string name="title_activity_main">OffGridLink</string>
+    <string name="app_name">OffGrid Quiz</string>
+    <string name="title_activity_main">OffGrid Quiz</string>
     <string name="package_name">io.offgrid.link</string>
     <string name="custom_url_scheme">io.offgrid.link</string>
 </resources>

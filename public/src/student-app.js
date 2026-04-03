@@ -643,13 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[Torrent] Magnet:', magnetURI);
         console.log('[Torrent] Trackers:', trackerList);
 
-        const probe = await probeTrackerReachability(magnetURI);
-        if (probe && probe.ok === false) {
-            console.warn('[Torrent] Tracker unreachable during probe:', probe.url, probe.error || 'unknown');
-            showToast(withModeBadge('WebTorrent', 'Tracker unreachable (' + probe.url + '). Check Teacher IP/Firewall for port 8000.'), 'error');
-            hideDownloadProgress();
-            return;
-        }
 
         // Persist client on window so it isn't GC'd — student continues seeding
         if (!window._studentTorrentClient || window._studentTorrentClient.destroyed) {

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>OffGridLink – Teacher Dashboard</title>
+    <title>OffGrid Quiz – Teacher Dashboard</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta http-equiv="Content-Security-Policy"
@@ -125,7 +125,8 @@
         }
 
         #sync-status,
-        #p2p-status-badge {
+        #p2p-status-badge,
+        #refresh-btn {
             display: flex;
             align-items: center;
             gap: 8px;
@@ -138,6 +139,13 @@
             transition: all 0.3s ease;
             font-weight: 600;
             -webkit-app-region: no-drag;
+            cursor: pointer;
+        }
+
+        #refresh-btn:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            background: rgba(245, 158, 11, 0.1);
         }
 
         #sync-status:hover {
@@ -1044,6 +1052,10 @@
             </div>
         </div>
         <div class="header-right">
+            <button id="refresh-btn" title="Refresh Dashboard">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                <span>Refresh</span>
+            </button>
             <div id="p2p-status-badge">
                 <span class="dot" id="p2p-dot"></span>
                 <span id="p2p-text">P2P: Offline</span>
@@ -1345,6 +1357,11 @@
             });
             const countEl = document.getElementById('connected-count');
             if (countEl) observer.observe(countEl, { childList: true, characterData: true, subtree: true });
+        });
+    </script>
+    <script>
+        document.getElementById('refresh-btn').addEventListener('click', () => {
+            location.reload();
         });
     </script>
 </body>

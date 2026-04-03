@@ -48,10 +48,10 @@
 
             // Use stable ID with public broker just to get an ID
             try {
-                peer = new Peer(stableId, { debug: 1 });
+                peer = new Peer(stableId, { debug: 1, config: { iceServers: [] } });
             } catch (e) {
                 // If ID conflicts (happens on reconnect sometimes), use undefined
-                peer = new Peer(undefined, { debug: 1 });
+                peer = new Peer(undefined, { debug: 1, config: { iceServers: [] } });
             }
 
             peer.on('open', id => {
@@ -110,14 +110,16 @@
                 host: teacherIP || 'localhost',
                 port: 9000,
                 path: '/offgrid',
-                debug: 1
+                debug: 1,
+                config: { iceServers: [] }
             });
         } catch (e) {
             peer = new Peer(undefined, {
                 host: teacherIP || 'localhost',
                 port: 9000,
                 path: '/offgrid',
-                debug: 1
+                debug: 1,
+                config: { iceServers: [] }
             });
         }
 
