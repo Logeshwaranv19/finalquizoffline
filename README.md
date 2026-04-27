@@ -1,5 +1,7 @@
 # OffGridLink - Offline Quiz Distribution System
 
+🌍 **Live Demo:** [Click Here](https://offgridlink.netlify.app/)  
+
 ## 📋 Description
 
 **OffGridLink** is an innovative offline-first quiz management and distribution system designed for educational environments without reliable internet connectivity. Teachers can create, manage, and distribute quizzes to students via peer-to-peer networking over local Wi-Fi networks. Students submit their responses which are automatically scored and synced when connectivity is available.
